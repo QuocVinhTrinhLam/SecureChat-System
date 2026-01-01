@@ -1,0 +1,91 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio files
+.vs/
+*.user
+*.userosscache
+*.suo
+*.cache
+*.sln.docstates
+
+# Rider files
+.idea/
+
+# VS Code files
+.vscode/
+
+# NuGet packages
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+
+# Build outputs
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.ipch
+*.log
+*.tlog
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+coverage*.xml
+*.coverage
+*.coveragexml
+
+# Publish output
+publish/
+PublishProfiles/
+
+# User-specific files
+*.rsuser
+*.csproj.user
+
+# macOS files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# JetBrains Rider
+*.sln.iml
+
+# Secrets and credentials - SECURITY CRITICAL
+# Never commit these files!
+*.pfx
+*.p12
+*.key
+*.pem
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json.example
+secrets.json
+*.secret
+
+# Environment files
+.env
+.env.*
+!.env.example
