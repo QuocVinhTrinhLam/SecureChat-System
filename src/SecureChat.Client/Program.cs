@@ -1,75 +1,58 @@
-using SecureChat.Core.Utilities;
+using System.Net.Sockets;
+using System.Text;
 
-namespace SecureChat.Client;
-
-/// <summary>
-/// Entry point for the SecureChat Client application.
-/// 
-/// Security Considerations:
-/// - No credentials stored in code
-/// - Graceful shutdown for clean connection termination
-/// - Foundation phase: No encryption (security warning displayed)
-/// </summary>
-public static class Program
+class Program
 {
-    private const string DefaultHost = "localhost";
-    private const int DefaultPort = 5000;
-    
-    private static readonly ILogger Logger = new ConsoleLogger(LogLevel.Info);
-    
-    public static async Task Main(string[] args)
+    static async Task Main()
     {
-        Console.Title = "SecureChat Client";
-        
-        Logger.Info("===========================================");
-        Logger.Info("       SecureChat Client - Foundation      ");
-        Logger.Info("===========================================");
-        Logger.Security("Foundation Phase - Messages are NOT encrypted!");
-        Console.WriteLine();
-        
-        // Parse host and port from arguments
-        var host = args.Length > 0 ? args[0] : DefaultHost;
-        var port = DefaultPort;
-        if (args.Length > 1 && int.TryParse(args[1], out var parsedPort))
+        Console.InputEncoding = Encoding.Unicode;
+        Console.OutputEncoding = Encoding.Unicode;
+
+        Console.WriteLine("Đang kết nối tới Server Chat...");
+
+        TcpClient client = new TcpClient();
+        client.Connect("127.0.0.1", 9000);
+
+        Console.WriteLine("Đã kết nối tới server");
+
+        NetworkStream stream = client.GetStream();
+        StreamReader reader = new StreamReader(stream, Encoding.Unicode);
+        StreamWriter writer = new StreamWriter(stream, Encoding.Unicode)
         {
-            port = parsedPort;
-        }
-        
-        // Get username from user
-        Console.Write("Enter your username: ");
-        var username = Console.ReadLine()?.Trim();
-        
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            Logger.Error("Username cannot be empty.");
-            return;
-        }
-        
-        // Set up cancellation
-        using var cts = new CancellationTokenSource();
-        
-        Console.CancelKeyPress += (_, e) =>
-        {
-            e.Cancel = true;
-            Logger.Info("Disconnecting...");
-            cts.Cancel();
+            AutoFlush = true
         };
-        
-        try
+
+        // Nhận thông báo từ server
+        string? welcome = await reader.ReadLineAsync();
+        if (welcome != null)
         {
-            var client = new ChatClient(host, port, username, Logger);
-            await client.ConnectAndRunAsync(cts.Token);
+            Console.WriteLine(welcome);
         }
-        catch (OperationCanceledException)
+
+        while (true)
         {
-            Logger.Info("Disconnected.");
+            Console.Write("Nhập tin nhắn: ");
+            string? input = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                Console.WriteLine("Đã thoát khỏi chương trình client");
+                break;
+            }
+
+            // Gửi tin nhắn theo protocol
+            await writer.WriteLineAsync("TEXT: " + input);
+
+            // Nhận phản hồi từ server
+            string? response = await reader.ReadLineAsync();
+            if (response == null)
+            {
+                Console.WriteLine("Server đã ngắt kết nối");
+                break;
+            }
+            Console.WriteLine(response);
         }
-        catch (Exception ex)
-        {
-            Logger.Exception(ex, "Connection error");
-        }
-        
-        Console.WriteLine("Press any key to exit...");
-        Console.ReadKey(true);
+        stream.Close();
+        client.Close();
     }
 }

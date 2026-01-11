@@ -1,49 +1,56 @@
 using System.Net.Sockets;
 using System.Text;
+using System.IO;
 
 namespace SecureChat.Server
 {
     public class ClientHandler : IDisposable
     {
-        // ClientManager yêu cầu
-        public string User { get; private set; } = "Anonymous";
+        // Tên người dùng
+        public string User { get; private set; } = "Ẩn danh";
 
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
+        private readonly StreamReader _reader;
+        private readonly StreamWriter _writer;
         private readonly ClientManager _manager;
 
         public ClientHandler(TcpClient client, ClientManager manager)
         {
             _client = client;
             _stream = client.GetStream();
+
+            _reader = new StreamReader(_stream, Encoding.Unicode);
+            _writer = new StreamWriter(_stream, Encoding.Unicode)
+            {
+                AutoFlush = true
+            };
+
             _manager = manager;
         }
 
         public async Task HandleAsync()
         {
-            byte[] buffer = new byte[1024];
+            // Gửi thông báo khi client kết nối
+            await SendAsync("THÔNG BÁO: Chào mừng bạn đến với Server Chat");
 
             try
             {
                 while (true)
                 {
-                    int bytesRead =
-                        await _stream.ReadAsync(buffer, 0, buffer.Length);
+                    // Đọc theo DÒNG
+                    string? message = await _reader.ReadLineAsync();
 
-                    if (bytesRead == 0)
+                    // Client đóng kết nối
+                    if (message == null)
                         break;
 
-                    string message =
-                        Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                    Console.WriteLine($"[{User}] {message}");
-
-                    await SendMessageAsync($"Server received: {message}");
+                    await XuLyTinNhanAsync(message.Trim());
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Tạm thời bỏ qua lỗi mạng
+                Console.WriteLine("Lỗi xử lý client: " + ex.Message);
             }
             finally
             {
@@ -51,19 +58,37 @@ namespace SecureChat.Server
             }
         }
 
-        // ClientManager sử dụng
-        public async Task SendMessageAsync(string message)
+        private async Task XuLyTinNhanAsync(string message)
         {
-            byte[] data = Encoding.UTF8.GetBytes(message);
-            await _stream.WriteAsync(data, 0, data.Length);
+            // Protocol: TEXT:<nội dung>
+            if (message.StartsWith("TEXT:"))
+            {
+                string noiDung = message.Substring(5);
+
+                Console.WriteLine($"[{User}] {noiDung}");
+
+                await SendAsync("PHẢN HỒI: Server đã nhận tin nhắn");
+            }
+            else
+            {
+                await SendAsync("LỖI: Lệnh không hợp lệ");
+            }
         }
 
-        // ClientManager sử dụng
+        public async Task SendAsync(string message)
+        {
+            await _writer.WriteLineAsync(message);
+        }
+
         public void Dispose()
         {
+            _reader.Close();
+            _writer.Close();
+            _stream.Close();
             _client.Close();
+
             _manager.RemoveClient(this);
-            Console.WriteLine("[SERVER] Client disconnected");
+            Console.WriteLine("Client đã ngắt kết nối khỏi server");
         }
     }
 }
