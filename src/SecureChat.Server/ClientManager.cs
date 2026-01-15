@@ -7,6 +7,9 @@ namespace SecureChat.Server
         // Danh sách các client đang kết nối
         private readonly List<ClientHandler> _clients = new();
 
+        // Đối tượng khóa để đảm bảo an toàn luồng
+        private readonly object _lock = new();
+
         private readonly ILogger<ClientManager> _logger;
 
         public ClientManager(ILogger<ClientManager> logger)
@@ -17,21 +20,39 @@ namespace SecureChat.Server
         // Thêm client mới
         public void AddClient(ClientHandler client)
         {
-            _clients.Add(client);
-            _logger.LogInformation(
-                "Đã thêm client mới. Tổng số client: {Count}",
-                _clients.Count
-            );
+            lock (_lock)
+            {
+                _clients.Add(client);
+
+                _logger.LogInformation(
+                    "Client kết nối từ {Endpoint}. Tổng số client: {Count}",
+                    client.ClientEndpoint,
+                    _clients.Count
+                );
+            }
         }
 
         // Xóa client khi ngắt kết nối
         public void RemoveClient(ClientHandler client)
         {
-            _clients.Remove(client);
-            _logger.LogInformation(
-                "Đã xóa client. Tổng số client còn lại: {Count}",
-                _clients.Count
-            );
+            lock (_lock)
+            {
+                _clients.Remove(client);
+
+                _logger.LogInformation(
+                    "Client ngắt kết nối từ {Endpoint}. Tổng số client còn lại: {Count}",
+                    client.ClientEndpoint,
+                    _clients.Count
+                );
+            }
+        }
+        // Lấy số lượng client hiện tại
+        public int GetClientCount()
+        {
+            lock (_lock)
+            {
+                return _clients.Count;
+            }
         }
     }
 }
