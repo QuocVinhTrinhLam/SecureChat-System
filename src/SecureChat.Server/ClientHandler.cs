@@ -1,6 +1,5 @@
 using System.Net.Sockets;
 using System.Text;
-using System.IO;
 
 namespace SecureChat.Server
 {
@@ -9,48 +8,52 @@ namespace SecureChat.Server
         // Tên người dùng
         public string User { get; private set; } = "Ẩn danh";
 
+        // Địa chỉ client
+        public string ClientEndpoint { get; }
+
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
+        private readonly ClientManager _manager;
+
         private readonly StreamReader _reader;
         private readonly StreamWriter _writer;
-        private readonly ClientManager _manager;
 
         public ClientHandler(TcpClient client, ClientManager manager)
         {
             _client = client;
             _stream = client.GetStream();
+            _manager = manager;
+
+            ClientEndpoint = client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
 
             _reader = new StreamReader(_stream, Encoding.Unicode);
             _writer = new StreamWriter(_stream, Encoding.Unicode)
             {
                 AutoFlush = true
             };
-
-            _manager = manager;
         }
 
         public async Task HandleAsync()
         {
-            // Gửi thông báo khi client kết nối
+            // Gửi thông báo khi client kết nối thành công
             await SendAsync("THÔNG BÁO: Chào mừng bạn đến với Server Chat");
 
             try
             {
                 while (true)
                 {
-                    // Đọc theo DÒNG
                     string? message = await _reader.ReadLineAsync();
 
                     // Client đóng kết nối
                     if (message == null)
                         break;
 
-                    await XuLyTinNhanAsync(message.Trim());
+                    await XuLyTinNhanAsync(message);
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine("Lỗi xử lý client: " + ex.Message);
+                // Bỏ qua lỗi kết nối
             }
             finally
             {
@@ -60,14 +63,16 @@ namespace SecureChat.Server
 
         private async Task XuLyTinNhanAsync(string message)
         {
-            // Protocol: TEXT:<nội dung>
+            // Xử lý tin nhắn dạng TEXT
             if (message.StartsWith("TEXT:"))
             {
                 string noiDung = message.Substring(5);
 
-                Console.WriteLine($"[{User}] {noiDung}");
+                Console.WriteLine(
+                    $"[CLIENT {ClientEndpoint}] Nội dung gửi: {noiDung}"
+                );
 
-                await SendAsync("PHẢN HỒI: Server đã nhận tin nhắn");
+                await SendAsync($"PHẢN HỒI: Server đã nhận - {noiDung}");
             }
             else
             {
@@ -88,7 +93,10 @@ namespace SecureChat.Server
             _client.Close();
 
             _manager.RemoveClient(this);
-            Console.WriteLine("Client đã ngắt kết nối khỏi server");
+
+            Console.WriteLine(
+                $"[SERVER] Client {ClientEndpoint} đã ngắt kết nối"
+            );
         }
     }
 }

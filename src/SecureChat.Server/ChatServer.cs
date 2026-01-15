@@ -24,18 +24,26 @@ namespace SecureChat.Server
         public async Task StartAsync()
         {
             _listener.Start();
-            _logger.LogInformation("Server đang lắng nghe tại cổng 9000");
+            _logger.LogInformation(
+                "Server đang lắng nghe tại cổng {Port}",
+                ((IPEndPoint)_listener.LocalEndpoint).Port
+            );
 
             while (true)
             {
                 TcpClient tcpClient = await _listener.AcceptTcpClientAsync();
-                _logger.LogInformation("Có client mới kết nối tới server");
+                _logger.LogInformation(
+                    "Client mới kết nối từ {Endpoint}",
+                    tcpClient.Client.RemoteEndPoint
+                );
 
-                ClientHandler handler = new ClientHandler(tcpClient, _clientManager);
+                ClientHandler handler =
+                    new ClientHandler(tcpClient, _clientManager);
 
                 _clientManager.AddClient(handler);
 
-                _ = handler.HandleAsync(); // xử lý bất đồng bộ
+                // Xử lý client bất đồng bộ
+                _ = handler.HandleAsync();
             }
         }
     }
