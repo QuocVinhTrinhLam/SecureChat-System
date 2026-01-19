@@ -1,8 +1,7 @@
 using SecureChat.Core.Security.Implementations;
 using Xunit;
 
-namespace SecureChat.Tests
-{
+namespace SecureChat.Tests;
     public class AesGcmEncryptionTests
     {
         [Fact]
@@ -22,4 +21,3 @@ namespace SecureChat.Tests
             Assert.Equal(plaintext, decrypted);
         }
     }
-}
