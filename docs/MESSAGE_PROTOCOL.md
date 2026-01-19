@@ -1,110 +1,110 @@
-# SecureChat Message Protocol Specification
+# Đặc Tả Giao Thức Tin Nhắn SecureChat
 
-**Version**: 1.0  
-**Status**: Foundation Phase (Encryption Planned)
-
----
-
-## Protocol Overview
-
-SecureChat uses a JSON-based message protocol over TCP with length-prefixed framing. This document defines the wire format, message structure, types, and validation rules.
-
-### Transport
-
-| Property        | Value           |
-|-----------------|-----------------|
-| Transport       | TCP             |
-| Encoding        | UTF-8           |
-| Serialization   | JSON            |
-| Max Message Size| 64 KB (65,536 bytes) |
+**Phiên bản**: 1.0  
+**Trạng thái**: Giai đoạn Nền tảng (Đang lên kế hoạch Mã hóa)
 
 ---
 
-## Wire Format
+## Tổng Quan Giao Thức
 
-All messages use **length-prefixed framing** to prevent injection attacks and enable proper message boundary detection.
+SecureChat sử dụng giao thức tin nhắn dựa trên JSON qua TCP với định dạng có tiền tố độ dài. Tài liệu này định nghĩa định dạng truyền tải, cấu trúc tin nhắn, các loại và quy tắc xác thực.
+
+### Truyền Tải
+
+| Thuộc tính         | Giá trị          |
+|--------------------|------------------|
+| Giao thức          | TCP              |
+| Mã hóa ký tự       | UTF-8            |
+| Tuần tự hóa        | JSON             |
+| Kích thước tối đa  | 64 KB (65,536 bytes) |
+
+---
+
+## Định Dạng Truyền Tải
+
+Tất cả tin nhắn sử dụng **định dạng có tiền tố độ dài** để ngăn chặn tấn công injection và cho phép phát hiện ranh giới tin nhắn chính xác.
 
 ```
 ┌──────────────────┬─────────────────────────────────────┐
 │ 4 bytes (Int32)  │         N bytes (UTF-8 JSON)        │
-│  Message Length  │           Message Payload           │
+│  Độ dài tin nhắn │         Nội dung tin nhắn           │
 │  (Big-Endian)    │                                     │
 └──────────────────┴─────────────────────────────────────┘
 ```
 
-### Framing Details
+### Chi Tiết Định Dạng
 
-| Field          | Size    | Description                              |
-|----------------|---------|------------------------------------------|
-| Length Prefix  | 4 bytes | Big-endian Int32, payload size in bytes  |
-| Payload        | N bytes | UTF-8 encoded JSON message               |
+| Trường          | Kích thước | Mô tả                                    |
+|-----------------|------------|------------------------------------------|
+| Tiền tố độ dài  | 4 bytes    | Int32 Big-endian, kích thước payload     |
+| Payload         | N bytes    | Tin nhắn JSON mã hóa UTF-8               |
 
 > [!IMPORTANT]
-> The length prefix specifies **only the payload size**, not including itself.
+> Tiền tố độ dài chỉ định **chỉ kích thước payload**, không bao gồm chính nó.
 
 ---
 
-## Message Structure
+## Cấu Trúc Tin Nhắn
 
-### Base Message Schema
+### Schema Tin Nhắn Cơ Bản
 
 ```json
 {
   "id": "uuid-v4-string",
   "type": "Text | Join | Leave | KeyExchange | Encrypted | Error | System",
   "senderId": "user-uuid-string",
-  "senderName": "Display Name",
-  "content": "Message content or encrypted payload",
+  "senderName": "Tên Hiển Thị",
+  "content": "Nội dung tin nhắn hoặc payload đã mã hóa",
   "timestamp": "2026-01-19T12:30:00Z",
-  "securityMetadata": { ... } // Optional, for encrypted messages
+  "securityMetadata": { ... } // Tùy chọn, cho tin nhắn đã mã hóa
 }
 ```
 
-### Field Definitions
+### Định Nghĩa Các Trường
 
-| Field            | Type     | Required | Description                                    |
-|------------------|----------|----------|------------------------------------------------|
-| `id`             | string   | ✓        | UUID v4 for deduplication and replay prevention|
-| `type`           | enum     | ✓        | Message type (see Message Types)               |
-| `senderId`       | string   | ✓        | Sender's unique identifier                     |
-| `senderName`     | string   | ✓        | Display name (sanitize before display)         |
-| `content`        | string   | ✓        | Message content (max 10,000 chars)             |
-| `timestamp`      | ISO 8601 | ✓        | UTC creation time                              |
-| `securityMetadata`| object  |          | Cryptographic data for encrypted messages      |
+| Trường            | Kiểu     | Bắt buộc | Mô tả                                          |
+|-------------------|----------|----------|------------------------------------------------|
+| `id`              | string   | ✓        | UUID v4 để loại bỏ trùng lặp và ngăn replay    |
+| `type`            | enum     | ✓        | Loại tin nhắn (xem Các Loại Tin Nhắn)          |
+| `senderId`        | string   | ✓        | Định danh duy nhất của người gửi               |
+| `senderName`      | string   | ✓        | Tên hiển thị (cần lọc trước khi hiển thị)      |
+| `content`         | string   | ✓        | Nội dung tin nhắn (tối đa 10,000 ký tự)        |
+| `timestamp`       | ISO 8601 | ✓        | Thời gian tạo UTC                              |
+| `securityMetadata`| object   |          | Dữ liệu mã hóa cho tin nhắn đã mã hóa          |
 
 ---
 
-## Message Types
+## Các Loại Tin Nhắn
 
-| Type          | Value | Description                              |
-|---------------|-------|------------------------------------------|
-| `Text`        | 0     | Regular chat message                     |
-| `Join`        | 1     | User joining notification                |
-| `Leave`       | 2     | User leaving notification                |
-| `KeyExchange` | 3     | Public key exchange                      |
-| `Encrypted`   | 4     | Encrypted payload (requires metadata)    |
-| `Error`       | 5     | Error notification                       |
-| `System`      | 6     | Server announcements                     |
+| Loại          | Giá trị | Mô tả                                    |
+|---------------|---------|------------------------------------------|
+| `Text`        | 0       | Tin nhắn chat thông thường               |
+| `Join`        | 1       | Thông báo người dùng tham gia            |
+| `Leave`       | 2       | Thông báo người dùng rời đi              |
+| `KeyExchange` | 3       | Trao đổi khóa công khai                  |
+| `Encrypted`   | 4       | Payload đã mã hóa (yêu cầu metadata)     |
+| `Error`       | 5       | Thông báo lỗi                            |
+| `System`      | 6       | Thông báo từ máy chủ                     |
 
-### Type-Specific Content
+### Nội Dung Theo Từng Loại
 
-#### Text Message
+#### Tin Nhắn Text
 ```json
 {
   "type": "Text",
-  "content": "Hello, everyone!"
+  "content": "Xin chào mọi người!"
 }
 ```
 
-#### Join Message
+#### Tin Nhắn Join
 ```json
 {
   "type": "Join",
-  "content": "Alice has joined the chat"
+  "content": "Alice đã tham gia chat"
 }
 ```
 
-#### KeyExchange Message
+#### Tin Nhắn KeyExchange
 ```json
 {
   "type": "KeyExchange",
@@ -112,7 +112,7 @@ All messages use **length-prefixed framing** to prevent injection attacks and en
 }
 ```
 
-#### Encrypted Message
+#### Tin Nhắn Encrypted
 ```json
 {
   "type": "Encrypted",
@@ -130,7 +130,7 @@ All messages use **length-prefixed framing** to prevent injection attacks and en
 
 ## Security Metadata
 
-Required for `Encrypted` type messages:
+Bắt buộc cho tin nhắn loại `Encrypted`:
 
 ```json
 {
@@ -141,78 +141,78 @@ Required for `Encrypted` type messages:
 }
 ```
 
-| Field       | Type   | Description                                     |
+| Trường      | Kiểu   | Mô tả                                           |
 |-------------|--------|-------------------------------------------------|
-| `algorithm` | string | Encryption algorithm (e.g., `AES-256-GCM`)      |
-| `iv`        | string | Base64-encoded IV/nonce (must be unique per message) |
-| `signature` | string | Base64-encoded authentication tag or HMAC       |
-| `keyId`     | string | Optional key identifier for key rotation        |
+| `algorithm` | string | Thuật toán mã hóa (vd: `AES-256-GCM`)           |
+| `iv`        | string | IV/nonce mã hóa Base64 (phải duy nhất mỗi tin) |
+| `signature` | string | Authentication tag hoặc HMAC mã hóa Base64      |
+| `keyId`     | string | Định danh khóa tùy chọn cho key rotation        |
 
 > [!CAUTION]
-> **Never reuse IVs!** Each message MUST have a unique initialization vector.
+> **Không bao giờ tái sử dụng IV!** Mỗi tin nhắn PHẢI có initialization vector duy nhất.
 
 ---
 
-## Validation Rules
+## Quy Tắc Xác Thực
 
-### Required Field Validation
-- `id` - Non-empty string (UUID format)
-- `senderId` - Non-empty string
-- `senderName` - Non-empty string (max 32 characters)
-- `content` - Max 10,000 characters
+### Xác Thực Trường Bắt Buộc
+- `id` - Chuỗi không rỗng (định dạng UUID)
+- `senderId` - Chuỗi không rỗng
+- `senderName` - Chuỗi không rỗng (tối đa 32 ký tự)
+- `content` - Tối đa 10,000 ký tự
 
-### Timestamp Validation
-- Must be within ±5 minutes of server time
-- Prevents replay attacks with stale messages
+### Xác Thực Timestamp
+- Phải nằm trong khoảng ±5 phút so với thời gian máy chủ
+- Ngăn chặn tấn công replay với tin nhắn cũ
 
-### Size Limits
-| Constraint       | Limit                    |
-|------------------|--------------------------|
-| Total message    | 64 KB (65,536 bytes)     |
-| Content length   | 10,000 characters        |
-| Username length  | 32 characters            |
+### Giới Hạn Kích Thước
+| Ràng buộc         | Giới hạn               |
+|-------------------|------------------------|
+| Tổng tin nhắn     | 64 KB (65,536 bytes)   |
+| Độ dài nội dung   | 10,000 ký tự           |
+| Độ dài tên        | 32 ký tự               |
 
 ---
 
-## Protocol State Machine
+## Máy Trạng Thái Giao Thức
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Connected: TCP Connect
-    Connected --> KeyExchange: Send Join + PublicKey
-    KeyExchange --> Messaging: Keys Exchanged
-    Messaging --> Messaging: Send/Receive Messages
-    Messaging --> [*]: Disconnect
+    [*] --> Connected: Kết nối TCP
+    Connected --> KeyExchange: Gửi Join + PublicKey
+    KeyExchange --> Messaging: Trao đổi khóa xong
+    Messaging --> Messaging: Gửi/Nhận tin nhắn
+    Messaging --> [*]: Ngắt kết nối
     
-    note right of KeyExchange: Phase 2 feature
+    note right of KeyExchange: Tính năng Phase 2
 ```
 
-### Connection Lifecycle
+### Vòng Đời Kết Nối
 
-1. **Connect**: Client establishes TCP connection
-2. **Join**: Client sends `Join` message with username
-3. **Key Exchange** (Phase 2): Exchange public keys via `KeyExchange` messages
-4. **Messaging**: Exchange `Text` or `Encrypted` messages
-5. **Leave**: Client sends `Leave` message on disconnect
+1. **Kết nối**: Client thiết lập kết nối TCP
+2. **Tham gia**: Client gửi tin nhắn `Join` với tên người dùng
+3. **Trao đổi khóa** (Phase 2): Trao đổi khóa công khai qua tin nhắn `KeyExchange`
+4. **Nhắn tin**: Trao đổi tin nhắn `Text` hoặc `Encrypted`
+5. **Rời đi**: Client gửi tin nhắn `Leave` khi ngắt kết nối
 
 ---
 
-## Example Messages
+## Ví Dụ Tin Nhắn
 
-### Text Message (Plaintext Phase)
+### Tin Nhắn Text (Giai đoạn Plaintext)
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "type": "Text",
   "senderId": "user-123",
   "senderName": "Alice",
-  "content": "Hello, Bob!",
+  "content": "Xin chào, Bob!",
   "timestamp": "2026-01-19T05:30:00Z",
   "securityMetadata": null
 }
 ```
 
-### Encrypted Message (Phase 2)
+### Tin Nhắn Encrypted (Phase 2)
 ```json
 {
   "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
@@ -232,10 +232,10 @@ stateDiagram-v2
 
 ---
 
-## Implementation Reference
+## Tham Chiếu Triển Khai
 
-| File | Purpose |
-|------|---------|
-| [Message.cs](file:///Users/quocvinhtrinhlam/Desktop/SecureChat-System/src/SecureChat.Core/Models/Message.cs) | Core message model |
-| [MessageType.cs](file:///Users/quocvinhtrinhlam/Desktop/SecureChat-System/src/SecureChat.Core/Models/MessageType.cs) | Message type enumeration |
-| [JsonMessageSerializer.cs](file:///Users/quocvinhtrinhlam/Desktop/SecureChat-System/src/SecureChat.Core/Networking/JsonMessageSerializer.cs) | Serialization implementation |
+| File | Mục đích |
+|------|----------|
+| [Message.cs](file:///Users/quocvinhtrinhlam/Desktop/SecureChat-System/src/SecureChat.Core/Models/Message.cs) | Model tin nhắn cốt lõi |
+| [MessageType.cs](file:///Users/quocvinhtrinhlam/Desktop/SecureChat-System/src/SecureChat.Core/Models/MessageType.cs) | Enum loại tin nhắn |
+| [JsonMessageSerializer.cs](file:///Users/quocvinhtrinhlam/Desktop/SecureChat-System/src/SecureChat.Core/Networking/JsonMessageSerializer.cs) | Triển khai tuần tự hóa |

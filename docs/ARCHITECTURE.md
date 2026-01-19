@@ -1,24 +1,24 @@
-# SecureChat-System Architecture Overview
+# Tổng Quan Kiến Trúc SecureChat-System
 
-## System Architecture
+## Kiến Trúc Hệ Thống
 
 ```mermaid
 graph TB
-    subgraph Clients
+    subgraph Clients[Các Client]
         C1[Client 1]
         C2[Client 2]
         C3[Client N]
     end
     
-    subgraph Server
+    subgraph Server[Máy Chủ]
         CS[ChatServer]
         CM[ClientManager]
         CH1[ClientHandler 1]
         CH2[ClientHandler 2]
     end
     
-    C1 <-->|TCP + E2E Encryption| CH1
-    C2 <-->|TCP + E2E Encryption| CH2
+    C1 <-->|TCP + Mã hóa E2E| CH1
+    C2 <-->|TCP + Mã hóa E2E| CH2
     CS --> CM
     CM --> CH1
     CM --> CH2
@@ -26,62 +26,62 @@ graph TB
 
 ---
 
-## Project Structure
+## Cấu Trúc Dự Án
 
 ```
 SecureChat-System/
 ├── src/
-│   ├── SecureChat.Core/          # Shared library
+│   ├── SecureChat.Core/          # Thư viện dùng chung
 │   │   ├── Models/               # Message, User, MessageType
 │   │   ├── Security/
 │   │   │   ├── Interfaces/       # IKeyExchange, ISymmetricEncryption, IMessageSigner
 │   │   │   ├── Implementations/  # ECDH, AES-GCM, HMAC, HKDF, SecureSession
-│   │   │   └── Stubs/            # Placeholder implementations
-│   │   ├── Networking/           # Message serialization
+│   │   │   └── Stubs/            # Các triển khai tạm thời
+│   │   ├── Networking/           # Tuần tự hóa tin nhắn
 │   │   └── Utilities/            # Logging, SecureRandom
 │   │
-│   ├── SecureChat.Server/        # TCP chat server
-│   │   ├── ChatServer.cs         # Accepts connections
-│   │   ├── ClientHandler.cs      # Per-client handling
-│   │   └── ClientManager.cs      # Client registry
+│   ├── SecureChat.Server/        # Máy chủ TCP chat
+│   │   ├── ChatServer.cs         # Chấp nhận kết nối
+│   │   ├── ClientHandler.cs      # Xử lý từng client
+│   │   └── ClientManager.cs      # Quản lý danh sách client
 │   │
-│   └── SecureChat.Client/        # TCP chat client
-│       ├── ChatClient.cs         # High-level operations
-│       └── ServerConnection.cs   # TCP management
+│   └── SecureChat.Client/        # Client TCP chat
+│       ├── ChatClient.cs         # Các thao tác cấp cao
+│       └── ServerConnection.cs   # Quản lý kết nối TCP
 │
 └── tests/SecureChat.Tests/       # Unit tests
 ```
 
 ---
 
-## Component Overview
+## Tổng Quan Các Thành Phần
 
 ### SecureChat.Core
 
-The shared library containing all common code:
+Thư viện dùng chung chứa tất cả mã nguồn chung:
 
-| Component | Purpose |
-|-----------|---------|
+| Thành Phần | Mục Đích |
+|------------|----------|
 | **Models** | `Message`, `User`, `MessageType`, `SecurityMetadata` |
-| **Security/Interfaces** | Contracts for crypto operations |
-| **Security/Implementations** | Production crypto implementations |
-| **Networking** | JSON message serialization |
-| **Utilities** | Logging and secure random |
+| **Security/Interfaces** | Các hợp đồng cho thao tác mã hóa |
+| **Security/Implementations** | Triển khai mã hóa production |
+| **Networking** | Tuần tự hóa tin nhắn JSON |
+| **Utilities** | Logging và sinh số ngẫu nhiên an toàn |
 
 ### SecureChat.Server
 
-TCP server accepting multiple client connections:
+Máy chủ TCP chấp nhận nhiều kết nối client:
 
 ```mermaid
 flowchart LR
-    A[ChatServer] -->|Accept| B[ClientHandler]
-    B -->|Register| C[ClientManager]
+    A[ChatServer] -->|Chấp nhận| B[ClientHandler]
+    B -->|Đăng ký| C[ClientManager]
     C -->|Broadcast| B
 ```
 
 ### SecureChat.Client
 
-TCP client connecting to the server:
+Client TCP kết nối đến máy chủ:
 
 ```mermaid
 flowchart LR
@@ -91,46 +91,46 @@ flowchart LR
 
 ---
 
-## Cryptographic Architecture
+## Kiến Trúc Mật Mã
 
-### Security Stack
+### Stack Bảo Mật
 
 ```
 ┌─────────────────────────────────────────┐
-│            SecureSession                │  ← Orchestration
+│            SecureSession                │  ← Điều phối
 ├─────────────────────────────────────────┤
-│  ECDH P-256  │  AES-256-GCM  │ HMAC-256 │  ← Algorithms
+│  ECDH P-256  │  AES-256-GCM  │ HMAC-256 │  ← Thuật toán
 ├─────────────────────────────────────────┤
-│           HKDF Key Derivation           │  ← Key Management
+│           HKDF Key Derivation           │  ← Quản lý khóa
 ├─────────────────────────────────────────┤
-│      .NET Cryptography Primitives       │  ← Foundation
+│      .NET Cryptography Primitives       │  ← Nền tảng
 └─────────────────────────────────────────┘
 ```
 
-### Key Exchange Flow
+### Quy Trình Trao Đổi Khóa
 
 ```mermaid
 sequenceDiagram
     participant C as Client
     participant S as Server
     
-    C->>C: Generate ECDH key pair
-    S->>S: Generate ECDH key pair
+    C->>C: Tạo cặp khóa ECDH
+    S->>S: Tạo cặp khóa ECDH
     C->>S: KeyExchange {publicKey}
     S->>C: KeyExchange {publicKey}
-    C->>C: Derive shared secret + HKDF
-    S->>S: Derive shared secret + HKDF
-    Note over C,S: Both have identical encryption keys
+    C->>C: Tính shared secret + HKDF
+    S->>S: Tính shared secret + HKDF
+    Note over C,S: Cả hai có khóa mã hóa giống nhau
 ```
 
-### Message Encryption
+### Mã Hóa Tin Nhắn
 
 ```mermaid
 flowchart TD
-    A[Plaintext Message] --> B[Serialize JSON]
-    B --> C[AES-256-GCM Encrypt]
-    C --> D[Create Encrypted Message]
-    D --> E[Send via TCP]
+    A[Tin nhắn Plaintext] --> B[Tuần tự hóa JSON]
+    B --> C[Mã hóa AES-256-GCM]
+    C --> D[Tạo Encrypted Message]
+    D --> E[Gửi qua TCP]
     
     subgraph SecurityMetadata
         F[IV/Nonce]
@@ -141,57 +141,57 @@ flowchart TD
 
 ---
 
-## Wire Protocol
+## Giao Thức Truyền Tải
 
-### Message Framing
+### Định Dạng Tin Nhắn
 
 ```
 ┌──────────────────┬─────────────────────────────────────┐
 │ 4 bytes (Int32)  │         N bytes (UTF-8 JSON)        │
-│  Message Length  │           Message Payload           │
+│  Độ dài tin nhắn │           Nội dung tin nhắn         │
 │  (Big-Endian)    │                                     │
 └──────────────────┴─────────────────────────────────────┘
 ```
 
-### Message Types
+### Các Loại Tin Nhắn
 
-| Type | Value | Purpose |
-|------|-------|---------|
-| Text | 0 | Regular chat message |
-| Join | 1 | User joining |
-| Leave | 2 | User leaving |
-| KeyExchange | 3 | Public key exchange |
-| Encrypted | 4 | Encrypted payload |
-| Error | 5 | Error notification |
-| System | 6 | Server announcements |
-
----
-
-## Security Measures
-
-| Layer | Protection |
-|-------|------------|
-| **Transport** | Length-prefixed framing (injection prevention) |
-| **Key Exchange** | ECDH P-256 with key validation |
-| **Encryption** | AES-256-GCM (AEAD - confidentiality + integrity) |
-| **Key Derivation** | HKDF-SHA256 with domain separation |
-| **Memory** | Secure zeroing of key material |
+| Loại | Giá Trị | Mục Đích |
+|------|---------|----------|
+| Text | 0 | Tin nhắn chat thông thường |
+| Join | 1 | Người dùng tham gia |
+| Leave | 2 | Người dùng rời đi |
+| KeyExchange | 3 | Trao đổi khóa công khai |
+| Encrypted | 4 | Nội dung đã mã hóa |
+| Error | 5 | Thông báo lỗi |
+| System | 6 | Thông báo từ máy chủ |
 
 ---
 
-## Data Flow
+## Các Biện Pháp Bảo Mật
+
+| Tầng | Bảo Vệ |
+|------|--------|
+| **Truyền tải** | Định dạng có độ dài (ngăn chặn injection) |
+| **Trao đổi khóa** | ECDH P-256 với xác thực khóa |
+| **Mã hóa** | AES-256-GCM (AEAD - bảo mật + toàn vẹn) |
+| **Dẫn xuất khóa** | HKDF-SHA256 với phân tách miền |
+| **Bộ nhớ** | Xóa an toàn dữ liệu khóa |
+
+---
+
+## Luồng Dữ Liệu
 
 ```mermaid
 flowchart LR
     subgraph Client
-        UI[User Input] --> CC[ChatClient]
+        UI[Đầu vào người dùng] --> CC[ChatClient]
         CC --> SS1[SecureSession]
         SS1 --> SC[ServerConnection]
     end
     
     SC <-->|TCP| CH
     
-    subgraph Server
+    subgraph Server[Máy Chủ]
         CH[ClientHandler] --> SS2[SecureSession]
         SS2 --> CM[ClientManager]
         CM -->|Broadcast| CH
@@ -200,9 +200,9 @@ flowchart LR
 
 ---
 
-## Dependencies
+## Các Phụ Thuộc
 
 - **.NET 8.0+** - Runtime
-- **System.Security.Cryptography** - Crypto primitives
-- **System.Text.Json** - Message serialization
-- **xUnit** - Testing framework
+- **System.Security.Cryptography** - Các nguyên thủy mã hóa
+- **System.Text.Json** - Tuần tự hóa tin nhắn
+- **xUnit** - Framework kiểm thử
