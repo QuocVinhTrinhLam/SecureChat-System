@@ -1,4 +1,5 @@
 using SecureChat.Core.Security.Implementations;
+using SecureChat.Core.Security.Interfaces;
 using SecureChat.Core.Models;
 using Xunit;
 

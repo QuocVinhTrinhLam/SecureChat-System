@@ -1,4 +1,5 @@
 using SecureChat.Core.Security.Implementations;
+using SecureChat.Core.Security.Interfaces;
 using Xunit;
 
 namespace SecureChat.Tests;
