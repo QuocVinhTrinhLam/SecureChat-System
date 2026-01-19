@@ -1,58 +1,51 @@
-using System.Net.Sockets;
+using SecureChat.Client;
+using SecureChat.Core.Utilities;
 using System.Text;
 
 class Program
 {
     static async Task Main()
     {
-        Console.InputEncoding = Encoding.Unicode;
-        Console.OutputEncoding = Encoding.Unicode;
+        // Set UTF-8 encoding for proper Vietnamese character display
+        Console.InputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
 
-        Console.WriteLine("Đang kết nối tới Server Chat...");
+        Console.WriteLine("=== SecureChat Client ===");
+        Console.WriteLine();
 
-        TcpClient client = new TcpClient();
-        client.Connect("127.0.0.1", 9000);
-
-        Console.WriteLine("Đã kết nối tới server");
-
-        NetworkStream stream = client.GetStream();
-        StreamReader reader = new StreamReader(stream, Encoding.Unicode);
-        StreamWriter writer = new StreamWriter(stream, Encoding.Unicode)
+        // Get username
+        Console.Write("Nhập tên của bạn: ");
+        var username = Console.ReadLine()?.Trim();
+        
+        if (string.IsNullOrEmpty(username))
         {
-            AutoFlush = true
+            username = "User" + Random.Shared.Next(1000, 9999);
+        }
+
+        // Create client with console logger
+        var logger = new ConsoleLogger();
+        using var client = new ChatClient("127.0.0.1", 9000, username, logger);
+
+        // Handle Ctrl+C gracefully
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            cts.Cancel();
         };
 
-        // Nhận thông báo từ server
-        string? welcome = await reader.ReadLineAsync();
-        if (welcome != null)
+        try
         {
-            Console.WriteLine(welcome);
+            await client.ConnectAndRunAsync(cts.Token);
         }
-
-        while (true)
+        catch (OperationCanceledException)
         {
-            Console.Write("Nhập tin nhắn: ");
-            string? input = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                Console.WriteLine("Đã thoát khỏi chương trình client");
-                break;
-            }
-
-            // Gửi tin nhắn theo protocol
-            await writer.WriteLineAsync("TEXT: " + input);
-
-            // Nhận phản hồi từ server
-            string? response = await reader.ReadLineAsync();
-            if (response == null)
-            {
-                Console.WriteLine("Server đã ngắt kết nối");
-                break;
-            }
-            Console.WriteLine(response);
+            Console.WriteLine();
+            Console.WriteLine("Đã ngắt kết nối.");
         }
-        stream.Close();
-        client.Close();
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi: {ex.Message}");
+        }
     }
 }

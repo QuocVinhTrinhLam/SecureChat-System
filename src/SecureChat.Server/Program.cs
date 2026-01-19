@@ -6,8 +6,10 @@ class Program
 {
     static async Task Main()
     {
-        Console.InputEncoding = Encoding.Unicode;
-        Console.OutputEncoding = Encoding.Unicode;
+        // Set UTF-8 encoding for proper Vietnamese character display
+        Console.InputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
+
         using ILoggerFactory loggerFactory =
             LoggerFactory.Create(builder =>
             {
@@ -19,7 +21,8 @@ class Program
 
         ChatServer server = new ChatServer(9000, logger);
 
-        Console.WriteLine("Đang khởi động Server Chat ...");
+        Console.WriteLine("=== SecureChat Server ===");
+        Console.WriteLine("Đang khởi động Server Chat trên cổng 9000...");
         await server.StartAsync();
     }
 }

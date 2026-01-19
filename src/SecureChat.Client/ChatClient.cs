@@ -45,16 +45,23 @@ public sealed class ChatClient : IDisposable
         _connection = new ServerConnection(_host, _port, _logger);
         await _connection.ConnectAsync(cancellationToken);
         
-        _logger.Info("Connected! Type messages and press Enter to send. Ctrl+C to quit.");
+        _logger.Info("Connected! Performing secure key exchange...");
+        
+        // IMPORTANT: Perform key exchange BEFORE starting receive loop
+        // to avoid race condition on NetworkStream reads
+        await _connection.PerformKeyExchangeAsync(_user.Id, _user.Username, cancellationToken);
+        
+        _logger.Info("---");
+        _logger.Info("Phiên chat bảo mật đã sẵn sàng. Nhập tin nhắn và Enter để gửi. Ctrl+C để thoát.");
         _logger.Info("---");
         
         // Subscribe to incoming messages
         _connection.MessageReceived += OnMessageReceived;
         
-        // Start receiving messages in background
+        // Start receiving messages in background (AFTER key exchange is complete)
         var receiveTask = _connection.StartReceivingAsync(cancellationToken);
         
-        // Send join message
+        // Send join message (now encrypted)
         await SendJoinMessageAsync(cancellationToken);
         
         // Main input loop
