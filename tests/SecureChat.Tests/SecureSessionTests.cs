@@ -112,4 +112,49 @@ public class SecureSessionTests
         Assert.NotNull(outgoing.SecurityMetadata);
         Assert.Equal("AES-256-GCM", outgoing.SecurityMetadata.Algorithm);
     }
+    [Fact]
+    public async Task Server_DecryptsIncomingEncryptedMessage_Correctly()
+    {
+        // Arrange
+        using var clientSession = new SecureSession();
+        using var serverSession = new SecureSession();
+        await clientSession.InitializeAsync();
+        await serverSession.InitializeAsync();
+        // Key exchange
+        var clientKeyMsg = clientSession.GetKeyExchangeMessage("client", "Client");
+        var serverKeyMsg = serverSession.GetKeyExchangeMessage("server", "Server");
+        await clientSession.ProcessKeyExchangeMessageAsync(serverKeyMsg);
+        await serverSession.ProcessKeyExchangeMessageAsync(clientKeyMsg);
+        var original = Message.CreateTextMessage(
+            "client", "Client", "Hello from client");
+        // Client encrypts outgoing message
+        var encrypted = await clientSession.EncryptMessageAsync(original);
+        // Act
+        var decrypted = await serverSession.DecryptMessageAsync(encrypted);
+        // Assert
+        Assert.Equal(MessageType.Text, decrypted.Type);
+        Assert.Equal(original.Content, decrypted.Content);
+        Assert.Equal(original.SenderId, decrypted.SenderId);
+        Assert.Equal(original.SenderName, decrypted.SenderName);
+    }
+    [Fact]
+    public async Task Server_ReceivingPlaintextMessage_ThrowsArgumentException()
+    {
+        // Arrange
+        using var serverSession = new SecureSession();
+        using var clientSession = new SecureSession();
+        await serverSession.InitializeAsync();
+        await clientSession.InitializeAsync();
+        // Key exchange để session established
+        var clientKeyMsg = clientSession.GetKeyExchangeMessage("client", "Client");
+        var serverKeyMsg = serverSession.GetKeyExchangeMessage("server", "Server");
+        await serverSession.ProcessKeyExchangeMessageAsync(clientKeyMsg);
+        await clientSession.ProcessKeyExchangeMessageAsync(serverKeyMsg);
+        // Plaintext message
+        var plaintextMessage =
+            Message.CreateTextMessage("client", "Client", "Hello");
+        // Act and Assert
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => serverSession.DecryptMessageAsync(plaintextMessage));
+    }
 }
