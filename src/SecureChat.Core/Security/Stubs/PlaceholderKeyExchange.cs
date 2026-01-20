@@ -1,5 +1,4 @@
 namespace SecureChat.Core.Security.Stubs;
-
 using SecureChat.Core.Security.Interfaces;
 
 /// <summary>
