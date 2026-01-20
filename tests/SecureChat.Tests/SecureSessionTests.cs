@@ -5,7 +5,7 @@ using Xunit;
 
 namespace SecureChat.Tests;
 /// <summary>
-/// Tests for the SecureSession orchestrator.
+/// Tests for the SecureSession orchestrator
 /// </summary>
 public class SecureSessionTests
 {
@@ -60,7 +60,7 @@ public class SecureSessionTests
         using var session = new SecureSession();
         await session.InitializeAsync();
         var message = Message.CreateTextMessage("user", "User", "Hello");
-        // Act & Assert
+        // Act and Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => session.EncryptMessageAsync(message));
     }
@@ -88,5 +88,28 @@ public class SecureSessionTests
         Assert.NotEmpty(keyMsg.Content);  // Contains public key
         Assert.NotNull(keyMsg.SecurityMetadata);
         Assert.Equal("ECDH-P256", keyMsg.SecurityMetadata.Algorithm);
+    }
+    [Fact]
+    public async Task Client_EncryptsOutgoingMessage_Automatically()
+    {
+        // Arrange
+        using var clientSession = new SecureSession();
+        using var serverSession = new SecureSession();
+        await clientSession.InitializeAsync();
+        await serverSession.InitializeAsync();
+        // Key exchange
+        var clientKeyMsg = clientSession.GetKeyExchangeMessage("client1", "Client");
+        var serverKeyMsg = serverSession.GetKeyExchangeMessage("server", "Server");
+        await clientSession.ProcessKeyExchangeMessageAsync(serverKeyMsg);
+        await serverSession.ProcessKeyExchangeMessageAsync(clientKeyMsg);
+        var plaintextMessage =
+            Message.CreateTextMessage("client1", "Client", "THIS IS PLAINTEXT");
+        // Act
+        var outgoing = await clientSession.EncryptMessageAsync(plaintextMessage);
+        // Assert
+        Assert.Equal(MessageType.Encrypted, outgoing.Type);
+        Assert.NotEqual("THIS IS PLAINTEXT", outgoing.Content);
+        Assert.NotNull(outgoing.SecurityMetadata);
+        Assert.Equal("AES-256-GCM", outgoing.SecurityMetadata.Algorithm);
     }
 }
