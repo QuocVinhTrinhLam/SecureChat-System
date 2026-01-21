@@ -33,6 +33,13 @@ public sealed class SecurityMetadata
     public string? Signature { get; set; }
     
     /// <summary>
+    /// HMAC for message integrity verification (Encrypt-then-MAC pattern).
+    /// Base64 encoded. Verified before decryption to prevent oracle attacks.
+    /// </summary>
+    [JsonPropertyName("hmac")]
+    public string? Hmac { get; set; }
+    
+    /// <summary>
     /// Key identifier if using key rotation.
     /// Helps recipient select correct decryption key.
     /// </summary>

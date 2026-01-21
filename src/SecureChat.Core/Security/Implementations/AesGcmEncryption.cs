@@ -39,7 +39,7 @@ namespace SecureChat.Core.Security.Implementations
         /// - iv: Base64-encoded nonce
         /// - tag: Base64-encoded authentication tag
         /// </returns>
-        public async Task<(string ciphertext, string iv, string tag)>
+        public Task<(string ciphertext, string iv, string tag)>
             EncryptAsync(string plaintext, string key)
         {
             byte[] keyBytes = Convert.FromBase64String(key);
@@ -49,11 +49,11 @@ namespace SecureChat.Core.Security.Implementations
             byte[] tag = new byte[TagSize];
             using var aes = new AesGcm(keyBytes, TagSize);
             aes.Encrypt(nonce, plaintextBytes, ciphertext, tag);
-            return (
+            return Task.FromResult((
                 Convert.ToBase64String(ciphertext),
                 Convert.ToBase64String(nonce),
                 Convert.ToBase64String(tag)
-            );
+            ));
         }
         /// <summary>
         /// Decrypts AES-256-GCM encrypted data.
@@ -67,7 +67,7 @@ namespace SecureChat.Core.Security.Implementations
         /// Thrown if authentication fails, ciphertext is tampered,
         /// or input data is invalid.
         /// </exception>
-        public async Task<string> DecryptAsync(
+        public Task<string> DecryptAsync(
             string ciphertext,
             string key,
             string iv,
@@ -82,7 +82,7 @@ namespace SecureChat.Core.Security.Implementations
                 byte[] plaintext = new byte[cipherBytes.Length];
                 using var aes = new AesGcm(keyBytes, TagSize);
                 aes.Decrypt(nonce, cipherBytes, tagBytes, plaintext);
-                return Encoding.UTF8.GetString(plaintext);
+                return Task.FromResult(Encoding.UTF8.GetString(plaintext));
             }
             catch (Exception ex) when (
                 ex is FormatException ||

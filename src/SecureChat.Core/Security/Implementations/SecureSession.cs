@@ -106,6 +106,10 @@ public sealed class SecureSession : IDisposable
         });
         var (ciphertext, iv, tag) =
             await _encryption.EncryptAsync(plaintextJson, _encryptionKey!);
+        
+        // Compute HMAC over ciphertext for integrity verification (Encrypt-then-MAC)
+        var hmac = await _signer.SignAsync(ciphertext, _macKey!);
+        
         return new Message
         {
             Id = message.Id,
@@ -119,6 +123,7 @@ public sealed class SecureSession : IDisposable
                 Algorithm = _encryption.AlgorithmIdentifier,
                 InitializationVector = iv,
                 Signature = tag,
+                Hmac = hmac,
                 KeyId = _sessionId
             }
         };
@@ -139,6 +144,16 @@ public sealed class SecureSession : IDisposable
             throw new ArgumentException("Incomplete security metadata", nameof(encryptedMessage));
         if (metadata.Algorithm != _encryption.AlgorithmIdentifier)
             throw new SecurityException($"Unsupported encryption algorithm: {metadata.Algorithm}");
+        
+        // Verify HMAC before decryption (prevents decryption oracle attacks)
+        if (string.IsNullOrEmpty(metadata.Hmac))
+            throw new SecurityException("Missing HMAC in encrypted message");
+        
+        var isHmacValid = await _signer.VerifyAsync(
+            encryptedMessage.Content, metadata.Hmac, _macKey!);
+        if (!isHmacValid)
+            throw new SecurityException("HMAC verification failed - message integrity compromised");
+        
         var plaintextJson = await _encryption.DecryptAsync(
             encryptedMessage.Content,
             _encryptionKey!,
