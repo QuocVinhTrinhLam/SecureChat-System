@@ -2,12 +2,12 @@
 
 A secure client–server chat application implementing encrypted communication using modern cryptographic primitives for academic networking coursework.
 
-## 🔒 Security Notice
+## Security Notice
 
 > **Foundation Phase**: This is the architectural foundation of SecureChat. Encryption is NOT yet implemented.
 > All communication is currently in plaintext. Phase 2 will implement AES-GCM encryption and ECDH key exchange.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 SecureChat-System/
@@ -56,7 +56,7 @@ dotnet run --project src/SecureChat.Client
 dotnet run --project src/SecureChat.Client -- 192.168.1.100 8080
 ```
 
-## 🔐 Security Architecture
+## Security Architecture
 
 ### Design Principles
 1. **Security by Design** - Interfaces designed for encryption from the start
@@ -72,22 +72,22 @@ dotnet run --project src/SecureChat.Client -- 192.168.1.100 8080
 | `IMessageSigner` | Message integrity | HMAC-SHA256 |
 
 ### Current Security Measures
-- ✅ Message size limits (DoS prevention)
-- ✅ Input sanitization (XSS prevention)
-- ✅ Timestamp validation (Replay attack mitigation)
-- ✅ Length-prefixed framing (Injection prevention)
-- ✅ Cryptographic random number generator
-- ✅ Security event logging
+- Message size limits (DoS prevention)
+- Input sanitization (XSS prevention)
+- Timestamp validation (Replay attack mitigation)
+- Length-prefixed framing (Injection prevention)
+- Cryptographic random number generator
+- Security event logging
 
 ### Known Risks (Phase 1)
 | Risk | Status | Phase 2 Mitigation |
 |------|--------|-------------------|
-| Plaintext transmission | ⚠️ Vulnerable | AES-GCM encryption |
-| No authentication | ⚠️ Vulnerable | Public key authentication |
-| No key exchange | ⚠️ Vulnerable | ECDH implementation |
-| Message tampering | ⚠️ Vulnerable | HMAC signatures |
+| Plaintext transmission | Vulnerable | AES-GCM encryption |
+| No authentication | Vulnerable | Public key authentication |
+| No key exchange | Vulnerable | ECDH implementation |
+| Message tampering | Vulnerable | HMAC signatures |
 
-## 📋 Message Protocol
+## Message Protocol
 
 ### Wire Format
 ```
@@ -107,7 +107,7 @@ dotnet run --project src/SecureChat.Client -- 192.168.1.100 8080
 - `Error` - Error notification
 - `System` - Server announcements
 
-## 🛠️ Development
+## Development
 
 ### Adding New Features
 1. Define interface in `SecureChat.Core`
@@ -121,10 +121,10 @@ dotnet run --project src/SecureChat.Client -- 192.168.1.100 8080
 - Warnings treated as errors
 - Nullable reference types enabled
 
-## 📄 License
+## License
 
 This project is for academic purposes.
 
-## 🤝 Contributing
+## Contributing
 
 This is an academic project. Contributions should focus on security improvements and cryptographic implementation.

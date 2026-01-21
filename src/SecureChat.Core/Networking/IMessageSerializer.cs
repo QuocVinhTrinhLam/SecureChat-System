@@ -3,11 +3,11 @@ using SecureChat.Core.Models;
 namespace SecureChat.Core.Networking;
 
 /// <summary>
-/// Abstraction for message serialization/deserialization.
+/// Abstraction for message serialization/deserialization
 /// 
 /// Security Design:
 /// - Separates serialization logic from transport for easier auditing
-/// - Allows pluggable formats (JSON, Protocol Buffers, etc.)
+/// - Allows pluggable formats
 /// - Implementations should validate message structure during deserialization
 /// 
 /// Security Considerations:
@@ -18,7 +18,7 @@ namespace SecureChat.Core.Networking;
 public interface IMessageSerializer
 {
     /// <summary>
-    /// Serializes a message to byte array for network transmission.
+    /// Serializes a message to byte array for network transmission
     /// </summary>
     /// <param name="message">The message to serialize.</param>
     /// <returns>Byte array representation of the message.</returns>
@@ -26,7 +26,7 @@ public interface IMessageSerializer
     byte[] Serialize(Message message);
     
     /// <summary>
-    /// Deserializes a message from byte array.
+    /// Deserializes a message from byte array
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized message.</returns>
@@ -34,13 +34,13 @@ public interface IMessageSerializer
     /// <exception cref="FormatException">If data cannot be deserialized.</exception>
     /// <remarks>
     /// Security: Implementation should validate the message structure
-    /// and reject malformed messages before returning.
+    /// and reject malformed messages before returning
     /// </remarks>
     Message Deserialize(byte[] data);
     
     /// <summary>
-    /// Gets the content type identifier for this serializer.
-    /// Used for protocol negotiation.
+    /// Gets the content type identifier for this serializer
+    /// Used for protocol negotiation
     /// </summary>
     string ContentType { get; }
 }

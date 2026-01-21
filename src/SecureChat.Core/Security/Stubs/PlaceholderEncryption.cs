@@ -27,10 +27,10 @@ public sealed class PlaceholderEncryption : ISymmetricEncryption
     {
         Console.WriteLine("[SECURITY WARNING] Using placeholder encryption - NOT SECURE!");
         
-        // STUB: Just Base64 encode (NOT encryption!)
+        // STUB: Just Base64 encode
         // Real implementation: AesGcm.Encrypt() with random nonce
         var fakeCiphertext = Convert.ToBase64String(
-            System.Text.Encoding.UTF8.GetBytes(plaintext)
+            System.Text.Encoding.Unicode.GetBytes(plaintext)
         );
         
         // Generate fake IV (real impl: RandomNumberGenerator.GetBytes(12))
@@ -49,12 +49,12 @@ public sealed class PlaceholderEncryption : ISymmetricEncryption
         
         try
         {
-            // STUB: Just Base64 decode (NOT decryption!)
+            // STUB: Just Base64 decode
             // Real implementation: 
             // 1. Validate tag length
             // 2. AesGcm.Decrypt() - this verifies the auth tag
             // 3. Return plaintext only if tag verification succeeds
-            var plaintext = System.Text.Encoding.UTF8.GetString(
+            var plaintext = System.Text.Encoding.Unicode.GetString(
                 Convert.FromBase64String(ciphertext)
             );
             
@@ -70,7 +70,7 @@ public sealed class PlaceholderEncryption : ISymmetricEncryption
     /// <inheritdoc />
     public string GenerateKey()
     {
-        // STUB: Generate random bytes (this part is actually correct!)
+        // STUB: Generate random bytes
         // Real implementation should also use RandomNumberGenerator
         var keyBytes = new byte[KeySizeBits / 8];
         System.Security.Cryptography.RandomNumberGenerator.Fill(keyBytes);

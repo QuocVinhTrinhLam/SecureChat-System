@@ -3,113 +3,113 @@ using System.Text.Json.Serialization;
 namespace SecureChat.Core.Models;
 
 /// <summary>
-/// Contains cryptographic metadata required for secure message processing.
+/// Contains cryptographic metadata required for secure message processing
 /// Security Note: This metadata travels with encrypted messages to enable
-/// decryption and integrity verification by the recipient.
+/// decryption and integrity verification by the recipient
 /// </summary>
 public sealed class SecurityMetadata
 {
     /// <summary>
-    /// Algorithm identifier (e.g., "AES-256-GCM", "ChaCha20-Poly1305").
-    /// Security: Must be validated against allowed algorithms list.
+    /// Algorithm identifier
+    /// Security: Must be validated against allowed algorithms list
     /// </summary>
     [JsonPropertyName("algorithm")]
     public string? Algorithm { get; set; }
     
     /// <summary>
-    /// Initialization Vector for symmetric encryption.
+    /// Initialization Vector for symmetric encryption
     /// Security Critical: Must be unique per message. Never reuse IVs!
-    /// Base64 encoded for JSON transport.
+    /// Base64 encoded for JSON transport
     /// </summary>
     [JsonPropertyName("iv")]
     public string? InitializationVector { get; set; }
     
     /// <summary>
-    /// Message authentication code or digital signature.
-    /// Security: Verified before decryption to prevent oracle attacks.
-    /// Base64 encoded for JSON transport.
+    /// Message authentication code or digital signature
+    /// Security: Verified before decryption to prevent oracle attacks
+    /// Base64 encoded for JSON transport
     /// </summary>
     [JsonPropertyName("signature")]
     public string? Signature { get; set; }
     
     /// <summary>
-    /// HMAC for message integrity verification (Encrypt-then-MAC pattern).
-    /// Base64 encoded. Verified before decryption to prevent oracle attacks.
+    /// HMAC for message integrity verification
+    /// Base64 encoded. Verified before decryption to prevent oracle attacks
     /// </summary>
     [JsonPropertyName("hmac")]
     public string? Hmac { get; set; }
     
     /// <summary>
-    /// Key identifier if using key rotation.
-    /// Helps recipient select correct decryption key.
+    /// Key identifier if using key rotation
+    /// Helps recipient select correct decryption key
     /// </summary>
     [JsonPropertyName("keyId")]
     public string? KeyId { get; set; }
 }
 
 /// <summary>
-/// Core message model for all chat system communication.
-/// Designed to be extensible for both plaintext and encrypted modes.
+/// Core message model for all chat system communication
+/// Designed to be extensible for both plaintext and encrypted modes
 /// 
 /// Security Design Decisions:
 /// - Immutable sender information prevents tampering after creation
-/// - Timestamp for replay attack detection (validated by server)
+/// - Timestamp for replay attack detection
 /// - Separate SecurityMetadata for clean encrypted/plaintext handling
 /// </summary>
 public sealed class Message
 {
     /// <summary>
-    /// Unique message identifier (UUID v4).
-    /// Security: Used for deduplication and replay attack prevention.
+    /// Unique message identifier
+    /// Security: Used for deduplication and replay attack prevention
     /// </summary>
     [JsonPropertyName("id")]
     public string Id { get; set; } = Guid.NewGuid().ToString();
     
     /// <summary>
-    /// Type of message being sent.
-    /// Security: Server validates type matches expected protocol state.
+    /// Type of message being sent
+    /// Security: Server validates type matches expected protocol state
     /// </summary>
     [JsonPropertyName("type")]
     public MessageType Type { get; set; } = MessageType.Text;
     
     /// <summary>
-    /// Unique identifier of the sending user.
-    /// Security: Server validates this matches authenticated session.
+    /// Unique identifier of the sending user
+    /// Security: Server validates this matches authenticated session
     /// </summary>
     [JsonPropertyName("senderId")]
     public string SenderId { get; set; } = string.Empty;
     
     /// <summary>
-    /// Display name of the sender.
-    /// Security Note: This is user-provided and should be sanitized for display.
+    /// Display name of the sender
+    /// Security Note: This is user-provided and should be sanitized for display
     /// </summary>
     [JsonPropertyName("senderName")]
     public string SenderName { get; set; } = string.Empty;
     
     /// <summary>
-    /// Message content (plaintext or encrypted ciphertext).
-    /// When Type is Encrypted, this contains Base64-encoded ciphertext.
-    /// Security: Maximum length should be enforced to prevent DoS.
+    /// Message content
+    /// When Type is Encrypted, this contains Base64-encoded ciphertext
+    /// Security: Maximum length should be enforced to prevent DoS
     /// </summary>
     [JsonPropertyName("content")]
     public string Content { get; set; } = string.Empty;
     
     /// <summary>
-    /// UTC timestamp when message was created.
-    /// Security: Used for replay detection. Server rejects stale messages.
+    /// UTC timestamp when message was created
+    /// Security: Used for replay detection. Server rejects stale messages
     /// </summary>
     [JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     
     /// <summary>
-    /// Cryptographic metadata for encrypted messages.
-    /// Null for plaintext messages in foundation phase.
+    /// Cryptographic metadata for encrypted messages
+    /// Null for plaintext messages in foundation phase
     /// </summary>
     [JsonPropertyName("securityMetadata")]
     public SecurityMetadata? SecurityMetadata { get; set; }
     
     /// <summary>
-    /// Creates a simple text message.
+    /// Creates a simple text message
     /// </summary>
     public static Message CreateTextMessage(string senderId, string senderName, string content)
     {
@@ -123,7 +123,7 @@ public sealed class Message
     }
     
     /// <summary>
-    /// Creates a system announcement message.
+    /// Creates a system announcement message
     /// </summary>
     public static Message CreateSystemMessage(string content)
     {
@@ -137,7 +137,7 @@ public sealed class Message
     }
     
     /// <summary>
-    /// Creates a join notification message.
+    /// Creates a join notification message
     /// </summary>
     public static Message CreateJoinMessage(string userId, string userName)
     {
@@ -151,7 +151,7 @@ public sealed class Message
     }
     
     /// <summary>
-    /// Creates a leave notification message.
+    /// Creates a leave notification message
     /// </summary>
     public static Message CreateLeaveMessage(string userId, string userName)
     {

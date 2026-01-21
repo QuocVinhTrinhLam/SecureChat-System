@@ -5,7 +5,7 @@ using SecureChat.Core.Security.Interfaces;
 namespace SecureChat.Core.Security.Implementations
 {
     /// <summary>
-    /// Provides AES-256-GCM authenticated encryption implementation.
+    /// Provides AES-256-GCM authenticated encryption implementation
     /// </summary>
     public sealed class AesGcmEncryption : ISymmetricEncryption
     {
@@ -17,11 +17,11 @@ namespace SecureChat.Core.Security.Implementations
         /// </summary>
         public int KeySizeBits => 256;
         /// <summary>
-        /// Gets the algorithm identifier used in message metadata.
+        /// Gets the algorithm identifier used in message metadata
         /// </summary>
         public string AlgorithmIdentifier => "AES-256-GCM";
         /// <summary>
-        /// Generates a cryptographically secure random 256-bit AES key.
+        /// Generates a cryptographically secure random 256-bit AES key
         /// </summary>
         /// <returns>Base64-encoded AES key.</returns>
         public string GenerateKey()
@@ -29,7 +29,7 @@ namespace SecureChat.Core.Security.Implementations
             return Convert.ToBase64String(RandomNumberGenerator.GetBytes(KeySize));
         }
         /// <summary>
-        /// Encrypts plaintext using AES-256-GCM.
+        /// Encrypts plaintext using AES-256-GCM
         /// </summary>
         /// <param name="plaintext">Plaintext string to encrypt.</param>
         /// <param name="key">Base64-encoded 256-bit encryption key.</param>
@@ -44,7 +44,7 @@ namespace SecureChat.Core.Security.Implementations
         {
             byte[] keyBytes = Convert.FromBase64String(key);
             byte[] nonce = RandomNumberGenerator.GetBytes(NonceSize);
-            byte[] plaintextBytes = Encoding.UTF8.GetBytes(plaintext);
+            byte[] plaintextBytes = Encoding.Unicode.GetBytes(plaintext);
             byte[] ciphertext = new byte[plaintextBytes.Length];
             byte[] tag = new byte[TagSize];
             using var aes = new AesGcm(keyBytes, TagSize);
@@ -56,7 +56,7 @@ namespace SecureChat.Core.Security.Implementations
             ));
         }
         /// <summary>
-        /// Decrypts AES-256-GCM encrypted data.
+        /// Decrypts AES-256-GCM encrypted data
         /// </summary>
         /// <param name="ciphertext">Base64-encoded ciphertext.</param>
         /// <param name="key">Base64-encoded 256-bit encryption key.</param>
@@ -65,7 +65,7 @@ namespace SecureChat.Core.Security.Implementations
         /// <returns>Decrypted plaintext string.</returns>
         /// <exception cref="CryptographicException">
         /// Thrown if authentication fails, ciphertext is tampered,
-        /// or input data is invalid.
+        /// or input data is invalid
         /// </exception>
         public Task<string> DecryptAsync(
             string ciphertext,
@@ -82,7 +82,7 @@ namespace SecureChat.Core.Security.Implementations
                 byte[] plaintext = new byte[cipherBytes.Length];
                 using var aes = new AesGcm(keyBytes, TagSize);
                 aes.Decrypt(nonce, cipherBytes, tagBytes, plaintext);
-                return Task.FromResult(Encoding.UTF8.GetString(plaintext));
+                return Task.FromResult(Encoding.Unicode.GetString(plaintext));
             }
             catch (Exception ex) when (
                 ex is FormatException ||

@@ -5,8 +5,8 @@ using Xunit;
 namespace SecureChat.Tests.Security
 {
     /// <summary>
-    /// Negative tests for AES-GCM encryption/decryption.
-    /// These tests ensure tampering or misuse is correctly detected.
+    /// Negative tests for AES-GCM encryption/decryption
+    /// These tests ensure tampering or misuse is correctly detected
     /// </summary>
     public class AesGcmEncryptionNegativeTests
     {
@@ -19,7 +19,7 @@ namespace SecureChat.Tests.Security
             string wrongKey = encryption.GenerateKey(); // khác key
             string plaintext = "Hello SecureChat";
             var encrypted = await encryption.EncryptAsync(plaintext, correctKey);
-            // Act & Assert
+            // Act and Assert
             await Assert.ThrowsAsync<CryptographicException>(async () =>
             {
                 await encryption.DecryptAsync(
@@ -42,11 +42,11 @@ namespace SecureChat.Tests.Security
             byte[] tamperedCiphertext = encrypted.ciphertext.ToCharArray()
                 .Select(c => (byte)(c ^ 0xFF))
                 .ToArray();
-            // Act & Assert
+            // Act and Assert
             await Assert.ThrowsAsync<CryptographicException>(async () =>
             {
                 await encryption.DecryptAsync(
-                    System.Text.Encoding.UTF8.GetString(tamperedCiphertext),
+                    System.Text.Encoding.Unicode.GetString(tamperedCiphertext),
                     key,
                     encrypted.iv,
                     encrypted.tag
@@ -66,14 +66,14 @@ namespace SecureChat.Tests.Security
             byte[] tamperedTag = encrypted.tag.ToCharArray()
                 .Select(c => (byte)(c ^ 0xAA))
                 .ToArray();
-            // Act & Assert
+            // Act and Assert
             await Assert.ThrowsAsync<CryptographicException>(async () =>
             {
                 await encryption.DecryptAsync(
                     encrypted.ciphertext,
                     key,
                     encrypted.iv,
-                    System.Text.Encoding.UTF8.GetString(tamperedTag)
+                    System.Text.Encoding.Unicode.GetString(tamperedTag)
                 );
             });
         }
@@ -87,7 +87,7 @@ namespace SecureChat.Tests.Security
             var encrypted = await encryption.EncryptAsync(plaintext, key);
             // IV không hợp lệ
             string invalidIv = "invalid_iv";
-            // Act & Assert
+            // Act and Assert
             await Assert.ThrowsAsync<CryptographicException>(async () =>
             {
                 await encryption.DecryptAsync(

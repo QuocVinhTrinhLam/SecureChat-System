@@ -210,10 +210,10 @@ Mặc dù AES-GCM cung cấp xác thực tích hợp, HMAC-SHA256 có sẵn cho:
 
 ```csharp
 // SAI - dễ bị tấn công timing
-if (computedSignature == expectedSignature) // ❌
+if (computedSignature == expectedSignature)
 
 // ĐÚNG - so sánh thời gian hằng số
-CryptographicOperations.FixedTimeEquals(computed, expected); // ✅
+CryptographicOperations.FixedTimeEquals(computed, expected);
 ```
 
 > [!IMPORTANT]
@@ -234,11 +234,11 @@ CryptographicOperations.FixedTimeEquals(computed, expected); // ✅
 
 | Mục tiêu | Thuật toán | Trạng thái |
 |----------|------------|------------|
-| **Bảo mật** | AES-256-GCM | ✅ Đã triển khai |
-| **Toàn vẹn** | AES-GCM Tag / HMAC | ✅ Đã triển khai |
-| **Xác thực** | Trao đổi khóa ECDH | ✅ Đã triển khai |
-| **Forward Secrecy** | ECDH tạm thời | ✅ Mỗi phiên tạo khóa mới |
-| **Phân tách khóa** | HKDF với tag miền | ✅ Khóa mã hóa và MAC được dẫn xuất riêng |
+| **Bảo mật** | AES-256-GCM | Đã triển khai |
+| **Toàn vẹn** | AES-GCM Tag / HMAC | Đã triển khai |
+| **Xác thực** | Trao đổi khóa ECDH | Đã triển khai |
+| **Forward Secrecy** | ECDH tạm thời | Mỗi phiên tạo khóa mới |
+| **Phân tách khóa** | HKDF với tag miền | Khóa mã hóa và MAC được dẫn xuất riêng |
 
 ### Độ Mạnh Mật Mã
 
@@ -306,11 +306,11 @@ Mặc dù AES-GCM cung cấp xác thực:
 
 | Tiêu chuẩn | Trạng thái |
 |------------|------------|
-| **NIST SP 800-38D** (AES-GCM) | ✅ Tuân thủ |
-| **NIST SP 800-56A** (Thỏa thuận khóa) | ✅ Tuân thủ |
-| **NIST SP 800-56C** (Dẫn xuất khóa) | ✅ Tuân thủ |
-| **RFC 5869** (HKDF) | ✅ Tuân thủ |
-| **RFC 2104** (HMAC) | ✅ Tuân thủ |
+| **NIST SP 800-38D** (AES-GCM) | Tuân thủ |
+| **NIST SP 800-56A** (Thỏa thuận khóa) | Tuân thủ |
+| **NIST SP 800-56C** (Dẫn xuất khóa) | Tuân thủ |
+| **RFC 5869** (HKDF) | Tuân thủ |
+| **RFC 2104** (HMAC) | Tuân thủ |
 
 ### Khuyến Nghị Bảo Mật
 

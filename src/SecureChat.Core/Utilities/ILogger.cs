@@ -18,7 +18,7 @@ public enum LogLevel
     Error = 3,
     
     /// <summary>
-    /// Security-relevant events (authentication, access control, etc.).
+    /// Security-relevant events
     /// These should always be logged regardless of log level setting.
     /// </summary>
     Security = 4
@@ -33,8 +33,8 @@ public enum LogLevel
 /// - Structured logging support for analysis
 /// 
 /// Security Best Practices:
-/// - Never log sensitive data (keys, passwords, full messages)
-/// - Log security-relevant events (auth attempts, key exchanges, errors)
+/// - Never log sensitive data
+/// - Log security-relevant events
 /// - Include correlation IDs for tracking related events
 /// - Timestamp all entries in UTC
 /// </summary>
@@ -49,40 +49,40 @@ public interface ILogger
     void Log(LogLevel level, string message, params object[] args);
     
     /// <summary>
-    /// Logs a debug message.
+    /// Logs a debug message
     /// </summary>
     void Debug(string message, params object[] args);
     
     /// <summary>
-    /// Logs an informational message.
+    /// Logs an informational message
     /// </summary>
     void Info(string message, params object[] args);
     
     /// <summary>
-    /// Logs a warning message.
+    /// Logs a warning message
     /// </summary>
     void Warning(string message, params object[] args);
     
     /// <summary>
-    /// Logs an error message.
+    /// Logs an error message
     /// </summary>
     void Error(string message, params object[] args);
     
     /// <summary>
-    /// Logs a security-relevant event.
-    /// Security: These events should always be logged for audit purposes.
+    /// Logs a security-relevant event
+    /// Security: These events should always be logged for audit purposes
     /// </summary>
     void Security(string message, params object[] args);
     
     /// <summary>
-    /// Logs an exception with context.
-    /// Security: Exception details may be sensitive - log appropriately.
+    /// Logs an exception with context
+    /// Security: Exception details may be sensitive - log appropriately
     /// </summary>
     void Exception(Exception ex, string context);
     
     /// <summary>
-    /// Gets or sets the minimum log level to output.
-    /// Security events are always logged regardless of this setting.
+    /// Gets or sets the minimum log level to output
+    /// Security events are always logged regardless of this setting
     /// </summary>
     LogLevel MinimumLevel { get; set; }
 }

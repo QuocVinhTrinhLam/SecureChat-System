@@ -26,7 +26,7 @@ public sealed class PlaceholderSigner : IMessageSigner
         
         // STUB: Just return a fake signature based on data hash
         // Real implementation: HMACSHA256.ComputeHash() or ECDSA.SignData()
-        var dataBytes = System.Text.Encoding.UTF8.GetBytes(data);
+        var dataBytes = System.Text.Encoding.Unicode.GetBytes(data);
         var hashCode = data.GetHashCode(); // NOT cryptographically secure!
         
         var fakeSignature = Convert.ToBase64String(

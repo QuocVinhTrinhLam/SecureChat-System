@@ -7,8 +7,8 @@ class Program
     static async Task Main()
     {
         // Set UTF-8 encoding for proper Vietnamese character display
-        Console.InputEncoding = Encoding.UTF8;
-        Console.OutputEncoding = Encoding.UTF8;
+        Console.InputEncoding = Encoding.Unicode;
+        Console.OutputEncoding = Encoding.Unicode;
 
         Console.WriteLine("=== SecureChat Client ===");
         Console.WriteLine();

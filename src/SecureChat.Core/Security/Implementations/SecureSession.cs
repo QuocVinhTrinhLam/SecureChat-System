@@ -107,7 +107,7 @@ public sealed class SecureSession : IDisposable
         var (ciphertext, iv, tag) =
             await _encryption.EncryptAsync(plaintextJson, _encryptionKey!);
         
-        // Compute HMAC over ciphertext for integrity verification (Encrypt-then-MAC)
+        // Compute HMAC over ciphertext for integrity verification
         var hmac = await _signer.SignAsync(ciphertext, _macKey!);
         
         return new Message
@@ -145,7 +145,7 @@ public sealed class SecureSession : IDisposable
         if (metadata.Algorithm != _encryption.AlgorithmIdentifier)
             throw new SecurityException($"Unsupported encryption algorithm: {metadata.Algorithm}");
         
-        // Verify HMAC before decryption (prevents decryption oracle attacks)
+        // Verify HMAC before decryption
         if (string.IsNullOrEmpty(metadata.Hmac))
             throw new SecurityException("Missing HMAC in encrypted message");
         

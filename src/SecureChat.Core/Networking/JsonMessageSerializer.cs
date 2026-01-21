@@ -6,7 +6,7 @@ using SecureChat.Core.Models;
 namespace SecureChat.Core.Networking;
 
 /// <summary>
-/// JSON-based message serializer using System.Text.Json.
+/// JSON-based message serializer using System.Text.Json
 /// 
 /// Security Features:
 /// - Uses strict deserialization options
@@ -17,8 +17,8 @@ namespace SecureChat.Core.Networking;
 public sealed class JsonMessageSerializer : IMessageSerializer
 {
     /// <summary>
-    /// Maximum allowed message size in bytes.
-    /// Security: Prevents memory exhaustion attacks from oversized messages.
+    /// Maximum allowed message size in bytes
+    /// Security: Prevents memory exhaustion attacks from oversized messages
     /// </summary>
     public const int MaxMessageSize = 64 * 1024; // 64 KB
     
@@ -48,7 +48,7 @@ public sealed class JsonMessageSerializer : IMessageSerializer
         ValidateMessage(message);
         
         var json = JsonSerializer.Serialize(message, SerializerOptions);
-        var bytes = Encoding.UTF8.GetBytes(json);
+        var bytes = Encoding.Unicode.GetBytes(json);
         
         // Security: Check size before returning
         if (bytes.Length > MaxMessageSize)
@@ -79,7 +79,7 @@ public sealed class JsonMessageSerializer : IMessageSerializer
         
         try
         {
-            var json = Encoding.UTF8.GetString(data);
+            var json = Encoding.Unicode.GetString(data);
             var message = JsonSerializer.Deserialize<Message>(json, SerializerOptions);
             
             if (message is null)
@@ -100,8 +100,8 @@ public sealed class JsonMessageSerializer : IMessageSerializer
     }
     
     /// <summary>
-    /// Validates a message for required fields and constraints.
-    /// Security: Rejects malformed messages early in the pipeline.
+    /// Validates a message for required fields and constraints
+    /// Security: Rejects malformed messages early in the pipeline
     /// </summary>
     private static void ValidateMessage(Message message)
     {
@@ -123,7 +123,7 @@ public sealed class JsonMessageSerializer : IMessageSerializer
             throw new FormatException($"Message content exceeds maximum length of {MaxContentLength}");
         }
         
-        // Security: Validate timestamp is reasonable (within 5 minutes)
+        // Security: Validate timestamp is reasonable
         // This helps prevent replay attacks
         var timeDiff = DateTime.UtcNow - message.Timestamp;
         if (Math.Abs(timeDiff.TotalMinutes) > 5)

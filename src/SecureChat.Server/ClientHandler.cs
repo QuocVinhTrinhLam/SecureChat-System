@@ -6,7 +6,7 @@ using SecureChat.Core.Security.Implementations;
 
 namespace SecureChat.Server;
 /// <summary>
-/// Handles individual client connections with secure communication support.
+/// Handles individual client connections with secure communication support
 /// 
 /// Security Design:
 /// - Each client gets a unique SecureSession with ephemeral ECDH keys
@@ -39,16 +39,16 @@ public class ClientHandler : IDisposable
         ClientEndpoint = client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
     }
     /// <summary>
-    /// Main handler loop. Performs key exchange then processes messages.
+    /// Main handler loop. Performs key exchange then processes messages
     /// </summary>
     public async Task HandleAsync()
     {
         try
         {
-            // Initialize our session (generate ECDH key pair)
+            // Initialize our session
             await _session.InitializeAsync();            
             Console.WriteLine($"[SERVER] Phiên bảo mật đã khởi tạo cho {ClientEndpoint}");
-            // Send welcome message (plaintext, before encryption established)
+            // Send welcome message
             await SendSystemMessageAsync("Chào mừng bạn đến với SecureChat Server. Đang chờ trao đổi khóa...");
             // Main message loop
             while (true)
@@ -69,7 +69,7 @@ public class ClientHandler : IDisposable
         }
     }
     /// <summary>
-    /// Process incoming message based on type and session state.
+    /// Process incoming message based on type and session state
     /// </summary>
     private async Task ProcessMessageAsync(Message message)
     {
@@ -98,7 +98,7 @@ public class ClientHandler : IDisposable
         }
     }
     /// <summary>
-    /// Handle key exchange message from client.
+    /// Handle key exchange message from client
     /// </summary>
     private async Task HandleKeyExchangeAsync(Message clientKeyMessage)
     {
@@ -121,7 +121,7 @@ public class ClientHandler : IDisposable
         }
     }
     /// <summary>
-    /// Handle encrypted message - decrypt, process, respond encrypted.
+    /// Handle encrypted message - decrypt, process, respond encrypted
     /// </summary>
     private async Task HandleEncryptedMessageAsync(Message encryptedMessage)
     {
@@ -181,7 +181,7 @@ public class ClientHandler : IDisposable
         await SendMessageAsync(response);
     }
     /// <summary>
-    /// Handle join message.
+    /// Handle join message
     /// </summary>
     private async Task HandleJoinAsync(Message message)
     {
@@ -190,7 +190,7 @@ public class ClientHandler : IDisposable
         await SendSystemMessageAsync($"Chào mừng {User}! Vui lòng gửi tin nhắn KeyExchange để bắt đầu phiên bảo mật.");
     }
     /// <summary>
-    /// Send a raw message using length-prefixed JSON framing.
+    /// Send a raw message using length-prefixed JSON framing
     /// </summary>
     public async Task SendMessageAsync(Message message)
     {
@@ -214,7 +214,7 @@ public class ClientHandler : IDisposable
         }
     }
     /// <summary>
-    /// Receive a message using length-prefixed JSON framing.
+    /// Receive a message using length-prefixed JSON framing
     /// </summary>
     private async Task<Message?> ReceiveMessageAsync()
     {
@@ -259,7 +259,7 @@ public class ClientHandler : IDisposable
         }
     }
     /// <summary>
-    /// Send a system notification message.
+    /// Send a system notification message
     /// </summary>
     private async Task SendSystemMessageAsync(string content)
     {
@@ -267,7 +267,7 @@ public class ClientHandler : IDisposable
         await SendMessageAsync(message);
     }
     /// <summary>
-    /// Send an error message.
+    /// Send an error message
     /// </summary>
     private async Task SendErrorAsync(string error)
     {

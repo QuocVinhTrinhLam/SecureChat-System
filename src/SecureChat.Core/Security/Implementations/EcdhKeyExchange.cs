@@ -3,10 +3,10 @@ using System.Security.Cryptography;
 namespace SecureChat.Core.Security.Implementations;
 
 /// <summary>
-/// ECDH key exchange implementation using P-256 curve.
+/// ECDH key exchange implementation using P-256 curve
 /// 
 /// Security Design:
-/// - Uses NIST P-256 curve (widely supported, NIST standard)
+/// - Uses NIST P-256 curve
 /// - Keys exported in SPKI format for interoperability
 /// - Validates peer public keys before deriving shared secret
 /// 
@@ -104,7 +104,7 @@ public sealed class EcdhKeyExchange : Interfaces.IKeyExchange, IDisposable
             using var testEcdh = ECDiffieHellman.Create();
             testEcdh.ImportSubjectPublicKeyInfo(keyBytes, out int bytesRead);
             
-            // Ensure all bytes were consumed (no trailing garbage)
+            // Ensure all bytes were consumed
             if (bytesRead != keyBytes.Length)
             {
                 return false;
@@ -114,7 +114,7 @@ public sealed class EcdhKeyExchange : Interfaces.IKeyExchange, IDisposable
             var parameters = testEcdh.ExportParameters(includePrivateParameters: false);
             if (parameters.Curve.Oid?.Value != ECCurve.NamedCurves.nistP256.Oid.Value)
             {
-                // Allow if curve matches by name (fallback)
+                // Allow if curve matches by name
                 if (parameters.Curve.Oid?.FriendlyName != "nistP256" &&
                     parameters.Curve.Oid?.FriendlyName != "ECDSA_P256")
                 {
@@ -145,7 +145,7 @@ public sealed class EcdhKeyExchange : Interfaces.IKeyExchange, IDisposable
     }
 
     /// <summary>
-    /// Disposes cryptographic resources securely.
+    /// Disposes cryptographic resources securely
     /// </summary>
     public void Dispose()
     {

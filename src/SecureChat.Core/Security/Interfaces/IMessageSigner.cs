@@ -1,11 +1,11 @@
 namespace SecureChat.Core.Security.Interfaces;
 
 /// <summary>
-/// Abstraction for message integrity and authenticity verification.
+/// Abstraction for message integrity and authenticity verification
 /// 
 /// Security Purpose:
 /// - Ensures messages haven't been tampered with in transit
-/// - Provides sender authenticity (when using asymmetric signatures)
+/// - Provides sender authenticity
 /// - Prevents message forgery attacks
 /// 
 /// Implementation Options:
@@ -23,44 +23,44 @@ public interface IMessageSigner
     /// <summary>
     /// Signs the provided data.
     /// </summary>
-    /// <param name="data">The data to sign (typically serialized message).</param>
+    /// <param name="data">The data to sign.</param>
     /// <param name="key">
-    /// For HMAC: Base64-encoded shared secret key.
-    /// For asymmetric: Base64-encoded private key.
+    /// For HMAC: Base64-encoded shared secret key
+    /// For asymmetric: Base64-encoded private key
     /// </param>
     /// <returns>Base64-encoded signature.</returns>
     /// <remarks>
-    /// Security: The key parameter must be kept secret.
-    /// For asymmetric signing, this should be the sender's private key.
+    /// Security: The key parameter must be kept secret
+    /// For asymmetric signing, this should be the sender's private key
     /// </remarks>
     Task<string> SignAsync(string data, string key);
     
     /// <summary>
-    /// Verifies a signature against the provided data.
+    /// Verifies a signature against the provided data
     /// </summary>
     /// <param name="data">The original signed data.</param>
     /// <param name="signature">Base64-encoded signature to verify.</param>
     /// <param name="key">
-    /// For HMAC: Base64-encoded shared secret key.
-    /// For asymmetric: Base64-encoded public key.
+    /// For HMAC: Base64-encoded shared secret key
+    /// For asymmetric: Base64-encoded public key
     /// </param>
     /// <returns>True if signature is valid, false otherwise.</returns>
     /// <remarks>
-    /// Security Critical: Must use constant-time comparison to prevent timing attacks.
-    /// Never throw exceptions for invalid signatures - return false instead.
+    /// Security Critical: Must use constant-time comparison to prevent timing attacks
+    /// Never throw exceptions for invalid signatures - return false instead
     /// </remarks>
     Task<bool> VerifyAsync(string data, string signature, string key);
     
     /// <summary>
-    /// Generates a key suitable for this signing algorithm.
-    /// For HMAC, generates a random key.
-    /// For asymmetric, generates a key pair (returns private key).
+    /// Generates a key suitable for this signing algorithm
+    /// For HMAC, generates a random key
+    /// For asymmetric, generates a key pair
     /// </summary>
     /// <returns>Base64-encoded key material.</returns>
     string GenerateKey();
     
     /// <summary>
-    /// Gets the algorithm identifier for message metadata.
+    /// Gets the algorithm identifier for message metadata
     /// </summary>
     string AlgorithmIdentifier { get; }
 }

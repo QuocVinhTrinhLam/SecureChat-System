@@ -59,7 +59,7 @@ public sealed class PlaceholderKeyExchange : IKeyExchange
         // STUB: Return a deterministic fake shared secret
         // Real implementation: ECDiffieHellman.DeriveKeyMaterial()
         var fakeSecret = Convert.ToBase64String(
-            System.Text.Encoding.UTF8.GetBytes("PLACEHOLDER_SHARED_SECRET_32CHR!")
+            System.Text.Encoding.Unicode.GetBytes("PLACEHOLDER_SHARED_SECRET_32CHR!")
         );
         
         return Task.FromResult(fakeSecret);

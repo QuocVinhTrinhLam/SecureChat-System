@@ -1,11 +1,11 @@
 namespace SecureChat.Core.Security.Interfaces;
 /// <summary>
-/// Defines key exchange contract for secure session establishment.
+/// Defines key exchange contract for secure session establishment
 /// </summary>
 public interface IKeyExchange
 {
     /// <summary>
-    /// Identifier of the key exchange algorithm (e.g., ECDH-P256)
+    /// Identifier of the key exchange algorithm
     /// </summary>
     string AlgorithmIdentifier { get; }
     /// <summary>

@@ -58,7 +58,7 @@ public sealed class ChatClient : IDisposable
         // Subscribe to incoming messages
         _connection.MessageReceived += OnMessageReceived;
         
-        // Start receiving messages in background (AFTER key exchange is complete)
+        // Start receiving messages in background
         var receiveTask = _connection.StartReceivingAsync(cancellationToken);
         
         // Send join message (now encrypted)
@@ -214,7 +214,7 @@ public sealed class ChatClient : IDisposable
     }
     
     /// <summary>
-    /// Disposes client resources.
+    /// Disposes client resources
     /// </summary>
     public void Dispose()
     {

@@ -26,17 +26,17 @@ public sealed class ServerConnection : IDisposable
     private bool _disposed;
     
     /// <summary>
-    /// Gets whether secure session is established.
+    /// Gets whether secure session is established
     /// </summary>
     public bool IsSecure => _session.IsEstablished;
     
     /// <summary>
-    /// Event raised when a message is received from the server.
+    /// Event raised when a message is received from the server
     /// </summary>
     public event EventHandler<Message>? MessageReceived;
     
     /// <summary>
-    /// Creates a new server connection.
+    /// Creates a new server connection
     /// </summary>
     public ServerConnection(string host, int port, ILogger logger)
     {
@@ -48,7 +48,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Connects to the server.
+    /// Connects to the server
     /// </summary>
     public async Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -78,7 +78,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Performs key exchange with the server.
+    /// Performs key exchange with the server
     /// </summary>
     /// <param name="userId">Client user ID</param>
     /// <param name="userName">Client username</param>
@@ -122,11 +122,11 @@ public sealed class ServerConnection : IDisposable
         // Process server's key to establish session
         await _session.ProcessKeyExchangeMessageAsync(serverKeyMessage);
         
-        _logger.Security("✓ Phiên bảo mật đã thiết lập! (AES-256-GCM)");
+        _logger.Security("Phiên bảo mật đã thiết lập! (AES-256-GCM)");
     }
     
     /// <summary>
-    /// Starts receiving messages in a loop.
+    /// Starts receiving messages in a loop
     /// </summary>
     public async Task StartReceivingAsync(CancellationToken cancellationToken)
     {
@@ -182,13 +182,13 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Receives a raw length-prefixed message from the server.
+    /// Receives a raw length-prefixed message from the server
     /// </summary>
     private async Task<Message?> ReceiveRawMessageAsync(CancellationToken cancellationToken)
     {
         if (_stream is null) return null;
         
-        // Read message length (4 bytes, big-endian)
+        // Read message length
         var lengthBuffer = new byte[4];
         var bytesRead = await ReadExactAsync(lengthBuffer, cancellationToken);
         
@@ -227,7 +227,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Reads exactly the requested number of bytes.
+    /// Reads exactly the requested number of bytes
     /// </summary>
     private async Task<int> ReadExactAsync(byte[] buffer, CancellationToken cancellationToken)
     {
@@ -250,7 +250,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Sends a message to the server (auto-encrypts if session established).
+    /// Sends a message to the server
     /// </summary>
     public async Task SendMessageAsync(Message message, CancellationToken cancellationToken)
     {
@@ -267,7 +267,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Sends a raw message without encryption.
+    /// Sends a raw message without encryption
     /// </summary>
     private async Task SendRawMessageAsync(Message message, CancellationToken cancellationToken)
     {
@@ -278,7 +278,7 @@ public sealed class ServerConnection : IDisposable
         
         var messageBytes = _serializer.Serialize(message);
         
-        // Create length prefix (big-endian)
+        // Create length prefix
         var lengthBytes = BitConverter.GetBytes(messageBytes.Length);
         if (BitConverter.IsLittleEndian)
         {
@@ -292,7 +292,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Disposes connection resources.
+    /// Disposes connection resources
     /// </summary>
     public void Dispose()
     {

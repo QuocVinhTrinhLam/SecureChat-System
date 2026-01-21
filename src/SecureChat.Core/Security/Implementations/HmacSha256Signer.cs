@@ -18,7 +18,7 @@ namespace SecureChat.Core.Security.Implementations;
 public sealed class HmacSha256Signer : Interfaces.IMessageSigner
 {
     /// <summary>
-    /// Recommended key size in bytes (256 bits).
+    /// Recommended key size in bytes - 256 bits
     /// </summary>
     private const int KeySizeBytes = 32;
 
@@ -32,7 +32,7 @@ public sealed class HmacSha256Signer : Interfaces.IMessageSigner
         ArgumentNullException.ThrowIfNull(key);
 
         var keyBytes = Convert.FromBase64String(key);
-        var dataBytes = Encoding.UTF8.GetBytes(data);
+        var dataBytes = Encoding.Unicode.GetBytes(data);
 
         byte[] signature;
         using (var hmac = new HMACSHA256(keyBytes))
@@ -53,7 +53,7 @@ public sealed class HmacSha256Signer : Interfaces.IMessageSigner
         try
         {
             var keyBytes = Convert.FromBase64String(key);
-            var dataBytes = Encoding.UTF8.GetBytes(data);
+            var dataBytes = Encoding.Unicode.GetBytes(data);
             var expectedSignature = Convert.FromBase64String(signature);
 
             byte[] computedSignature;
