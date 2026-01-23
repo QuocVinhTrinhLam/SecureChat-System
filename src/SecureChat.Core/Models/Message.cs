@@ -3,113 +3,126 @@ using System.Text.Json.Serialization;
 namespace SecureChat.Core.Models;
 
 /// <summary>
-/// Contains cryptographic metadata required for secure message processing
-/// Security Note: This metadata travels with encrypted messages to enable
-/// decryption and integrity verification by the recipient
+/// Chứa metadata mật mã cần thiết để xử lý tin nhắn bảo mật
+/// Lưu ý bảo mật: Metadata này đi kèm với tin nhắn mã hóa để cho phép
+/// giải mã và xác minh tính toàn vẹn bởi người nhận
 /// </summary>
 public sealed class SecurityMetadata
 {
     /// <summary>
-    /// Algorithm identifier
-    /// Security: Must be validated against allowed algorithms list
+    /// Định danh thuật toán
+    /// Bảo mật: Phải được xác thực với danh sách thuật toán được phép
     /// </summary>
     [JsonPropertyName("algorithm")]
     public string? Algorithm { get; set; }
     
     /// <summary>
-    /// Initialization Vector for symmetric encryption
-    /// Security Critical: Must be unique per message. Never reuse IVs!
-    /// Base64 encoded for JSON transport
+    /// Vector khởi tạo cho mã hóa đối xứng
+    /// Bảo mật quan trọng: Phải là duy nhất cho mỗi tin nhắn. Không bao giờ tái sử dụng IV!
+    /// Được mã hóa Base64 để truyền JSON
     /// </summary>
     [JsonPropertyName("iv")]
     public string? InitializationVector { get; set; }
     
     /// <summary>
-    /// Message authentication code or digital signature
-    /// Security: Verified before decryption to prevent oracle attacks
-    /// Base64 encoded for JSON transport
+    /// Mã xác thực tin nhắn hoặc chữ ký số
+    /// Bảo mật: Được xác minh trước khi giải mã để ngăn chặn oracle attacks
+    /// Được mã hóa Base64 để truyền JSON
     /// </summary>
     [JsonPropertyName("signature")]
     public string? Signature { get; set; }
     
     /// <summary>
-    /// HMAC for message integrity verification
-    /// Base64 encoded. Verified before decryption to prevent oracle attacks
+    /// HMAC để xác minh tính toàn vẹn tin nhắn
+    /// Được mã hóa Base64. Xác minh trước khi giải mã để ngăn chặn oracle attacks
     /// </summary>
     [JsonPropertyName("hmac")]
     public string? Hmac { get; set; }
     
     /// <summary>
-    /// Key identifier if using key rotation
-    /// Helps recipient select correct decryption key
+    /// Định danh khóa nếu sử dụng key rotation
+    /// Giúp người nhận chọn đúng khóa giải mã
     /// </summary>
     [JsonPropertyName("keyId")]
     public string? KeyId { get; set; }
 }
 
 /// <summary>
-/// Core message model for all chat system communication
-/// Designed to be extensible for both plaintext and encrypted modes
+/// Model tin nhắn cốt lõi cho tất cả giao tiếp trong hệ thống chat
+/// Được thiết kế để mở rộng cho cả chế độ plaintext và encrypted
 /// 
-/// Security Design Decisions:
-/// - Immutable sender information prevents tampering after creation
-/// - Timestamp for replay attack detection
-/// - Separate SecurityMetadata for clean encrypted/plaintext handling
+/// Quyết định thiết kế bảo mật:
+/// - Thông tin người gửi không thể thay đổi ngăn chặn giả mạo sau khi tạo
+/// - Timestamp để phát hiện replay attack
+/// - SecurityMetadata riêng biệt để xử lý rõ ràng giữa encrypted/plaintext
 /// </summary>
 public sealed class Message
 {
     /// <summary>
-    /// Unique message identifier
-    /// Security: Used for deduplication and replay attack prevention
+    /// Định danh tin nhắn duy nhất
+    /// Bảo mật: Sử dụng để loại bỏ trùng lặp và ngăn chặn replay attack
     /// </summary>
     [JsonPropertyName("id")]
     public string Id { get; set; } = Guid.NewGuid().ToString();
     
     /// <summary>
-    /// Type of message being sent
-    /// Security: Server validates type matches expected protocol state
+    /// Loại tin nhắn được gửi
+    /// Bảo mật: Server xác thực loại khớp với trạng thái giao thức mong đợi
     /// </summary>
     [JsonPropertyName("type")]
     public MessageType Type { get; set; } = MessageType.Text;
     
     /// <summary>
-    /// Unique identifier of the sending user
-    /// Security: Server validates this matches authenticated session
+    /// Định danh duy nhất của người gửi
+    /// Bảo mật: Server xác thực điều này khớp với phiên đã xác thực
     /// </summary>
     [JsonPropertyName("senderId")]
     public string SenderId { get; set; } = string.Empty;
     
     /// <summary>
-    /// Display name of the sender
-    /// Security Note: This is user-provided and should be sanitized for display
+    /// Tên hiển thị của người gửi
+    /// Lưu ý bảo mật: Đây là dữ liệu do người dùng cung cấp và cần được làm sạch khi hiển thị
     /// </summary>
     [JsonPropertyName("senderName")]
     public string SenderName { get; set; } = string.Empty;
     
     /// <summary>
-    /// Message content
-    /// When Type is Encrypted, this contains Base64-encoded ciphertext
-    /// Security: Maximum length should be enforced to prevent DoS
+    /// Nội dung tin nhắn
+    /// Khi Type là Encrypted, chứa ciphertext được mã hóa Base64
+    /// Bảo mật: Độ dài tối đa cần được áp dụng để ngăn chặn DoS
     /// </summary>
     [JsonPropertyName("content")]
     public string Content { get; set; } = string.Empty;
     
     /// <summary>
-    /// UTC timestamp when message was created
-    /// Security: Used for replay detection. Server rejects stale messages
+    /// Timestamp UTC khi tin nhắn được tạo
+    /// Bảo mật: Sử dụng để phát hiện replay. Server từ chối tin nhắn cũ
     /// </summary>
     [JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     
     /// <summary>
-    /// Cryptographic metadata for encrypted messages
-    /// Null for plaintext messages in foundation phase
+    /// Metadata mật mã cho tin nhắn mã hóa
+    /// Null cho tin nhắn plaintext trong giai đoạn nền tảng
     /// </summary>
     [JsonPropertyName("securityMetadata")]
     public SecurityMetadata? SecurityMetadata { get; set; }
     
     /// <summary>
-    /// Creates a simple text message
+    /// ID người nhận cho tin nhắn trực tiếp.
+    /// Null cho tin nhắn broadcast.
+    /// </summary>
+    [JsonPropertyName("recipientId")]
+    public string? RecipientId { get; set; }
+    
+    /// <summary>
+    /// Tên hiển thị người nhận cho tin nhắn trực tiếp.
+    /// </summary>
+    [JsonPropertyName("recipientName")]
+    public string? RecipientName { get; set; }
+    
+    /// <summary>
+    /// Tạo tin nhắn text đơn giản
     /// </summary>
     public static Message CreateTextMessage(string senderId, string senderName, string content)
     {
@@ -123,7 +136,26 @@ public sealed class Message
     }
     
     /// <summary>
-    /// Creates a system announcement message
+    /// Tạo tin nhắn trực tiếp đến người nhận cụ thể
+    /// </summary>
+    public static Message CreateDirectMessage(
+        string senderId, string senderName,
+        string recipientId, string recipientName,
+        string content)
+    {
+        return new Message
+        {
+            Type = MessageType.Text,
+            SenderId = senderId,
+            SenderName = senderName,
+            RecipientId = recipientId,
+            RecipientName = recipientName,
+            Content = content
+        };
+    }
+    
+    /// <summary>
+    /// Tạo tin nhắn thông báo hệ thống
     /// </summary>
     public static Message CreateSystemMessage(string content)
     {
@@ -131,13 +163,13 @@ public sealed class Message
         {
             Type = MessageType.System,
             SenderId = "SYSTEM",
-            SenderName = "System",
+            SenderName = "Hệ thống",
             Content = content
         };
     }
     
     /// <summary>
-    /// Creates a join notification message
+    /// Tạo tin nhắn thông báo tham gia
     /// </summary>
     public static Message CreateJoinMessage(string userId, string userName)
     {
@@ -146,12 +178,12 @@ public sealed class Message
             Type = MessageType.Join,
             SenderId = userId,
             SenderName = userName,
-            Content = $"{userName} has joined the chat"
+            Content = $"{userName} đã tham gia chat"
         };
     }
     
     /// <summary>
-    /// Creates a leave notification message
+    /// Tạo tin nhắn thông báo rời đi
     /// </summary>
     public static Message CreateLeaveMessage(string userId, string userName)
     {
@@ -160,7 +192,7 @@ public sealed class Message
             Type = MessageType.Leave,
             SenderId = userId,
             SenderName = userName,
-            Content = $"{userName} has left the chat"
+            Content = $"{userName} đã rời khỏi chat"
         };
     }
 }

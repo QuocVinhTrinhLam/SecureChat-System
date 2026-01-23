@@ -7,12 +7,12 @@ using SecureChat.Core.Utilities;
 namespace SecureChat.Client;
 
 /// <summary>
-/// Manages the TCP connection to the chat server with secure session support.
+/// Quản lý kết nối TCP đến chat server với hỗ trợ phiên bảo mật.
 /// 
-/// Security Design:
-/// - Length-prefixed framing matches server protocol
-/// - ECDH key exchange establishes secure session
-/// - AES-256-GCM encryption after key exchange
+/// Thiết kế bảo mật:
+/// - Định dạng framing với tiền tố độ dài khớp với giao thức server
+/// - Trao đổi khóa ECDH thiết lập phiên bảo mật
+/// - Mã hóa AES-256-GCM sau khi trao đổi khóa
 /// </summary>
 public sealed class ServerConnection : IDisposable
 {
@@ -26,17 +26,17 @@ public sealed class ServerConnection : IDisposable
     private bool _disposed;
     
     /// <summary>
-    /// Gets whether secure session is established
+    /// Kiểm tra phiên bảo mật đã được thiết lập chưa
     /// </summary>
     public bool IsSecure => _session.IsEstablished;
     
     /// <summary>
-    /// Event raised when a message is received from the server
+    /// Sự kiện được kích hoạt khi nhận tin nhắn từ server
     /// </summary>
     public event EventHandler<Message>? MessageReceived;
     
     /// <summary>
-    /// Creates a new server connection
+    /// Tạo kết nối server mới
     /// </summary>
     public ServerConnection(string host, int port, ILogger logger)
     {
@@ -48,13 +48,13 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Connects to the server
+    /// Kết nối đến server
     /// </summary>
     public async Task ConnectAsync(CancellationToken cancellationToken)
     {
         _client = new TcpClient();
         
-        // Configure socket options
+        // Cấu hình tùy chọn socket
         _client.NoDelay = true;
         _client.ReceiveTimeout = 30000;
         _client.SendTimeout = 10000;
@@ -64,35 +64,35 @@ public sealed class ServerConnection : IDisposable
             await _client.ConnectAsync(_host, _port, cancellationToken);
             _stream = _client.GetStream();
             
-            _logger.Security("TCP connection established to {0}:{1}", _host, _port);
+            _logger.Security("Kết nối TCP đã thiết lập đến {0}:{1}", _host, _port);
             
-            // Initialize secure session
+            // Khởi tạo phiên bảo mật
             await _session.InitializeAsync();
-            _logger.Security("Secure session initialized (ECDH keys generated)");
+            _logger.Security("Phiên bảo mật đã khởi tạo (đã tạo khóa ECDH)");
         }
         catch (SocketException ex)
         {
-            _logger.Error("Failed to connect: {0}", ex.Message);
+            _logger.Error("Kết nối thất bại: {0}", ex.Message);
             throw;
         }
     }
     
     /// <summary>
-    /// Performs key exchange with the server
+    /// Thực hiện trao đổi khóa với server
     /// </summary>
-    /// <param name="userId">Client user ID</param>
-    /// <param name="userName">Client username</param>
-    /// <param name="cancellationToken">Cancellation token</param>
+    /// <param name="userId">ID người dùng của client</param>
+    /// <param name="userName">Tên người dùng của client</param>
+    /// <param name="cancellationToken">Token hủy</param>
     public async Task PerformKeyExchangeAsync(string userId, string userName, CancellationToken cancellationToken)
     {
         _logger.Info("Đang thực hiện trao đổi khóa với server...");
         
-        // Send our public key to server
+        // Gửi khóa công khai của chúng ta đến server
         var clientKeyMessage = _session.GetKeyExchangeMessage(userId, userName);
         await SendRawMessageAsync(clientKeyMessage, cancellationToken);
         _logger.Security("Đã gửi khóa công khai đến server");
         
-        // Wait for server's KeyExchange response (may receive System messages first)
+        // Chờ phản hồi KeyExchange từ server (có thể nhận tin nhắn System trước)
         Message? serverKeyMessage = null;
         while (serverKeyMessage == null || serverKeyMessage.Type != MessageType.KeyExchange)
         {
@@ -103,14 +103,14 @@ public sealed class ServerConnection : IDisposable
                 throw new InvalidOperationException("Server đã ngắt kết nối");
             }
             
-            // Display system/error messages but keep waiting for KeyExchange
+            // Hiển thị tin nhắn system/error nhưng vẫn chờ KeyExchange
             if (serverKeyMessage.Type == MessageType.System)
             {
                 _logger.Info("[Server]: {0}", serverKeyMessage.Content);
             }
             else if (serverKeyMessage.Type == MessageType.Error)
             {
-                _logger.Error("[Server Error]: {0}", serverKeyMessage.Content);
+                _logger.Error("[Lỗi Server]: {0}", serverKeyMessage.Content);
                 throw new InvalidOperationException(serverKeyMessage.Content);
             }
             else if (serverKeyMessage.Type != MessageType.KeyExchange)
@@ -119,20 +119,20 @@ public sealed class ServerConnection : IDisposable
             }
         }
         
-        // Process server's key to establish session
+        // Xử lý khóa của server để thiết lập phiên
         await _session.ProcessKeyExchangeMessageAsync(serverKeyMessage);
         
         _logger.Security("Phiên bảo mật đã thiết lập! (AES-256-GCM)");
     }
     
     /// <summary>
-    /// Starts receiving messages in a loop
+    /// Bắt đầu nhận tin nhắn trong vòng lặp
     /// </summary>
     public async Task StartReceivingAsync(CancellationToken cancellationToken)
     {
         if (_stream is null)
         {
-            throw new InvalidOperationException("Not connected");
+            throw new InvalidOperationException("Chưa kết nối");
         }
         
         while (!cancellationToken.IsCancellationRequested)
@@ -143,11 +143,11 @@ public sealed class ServerConnection : IDisposable
                 
                 if (message is null)
                 {
-                    _logger.Info("Server closed connection");
+                    _logger.Info("Server đóng kết nối");
                     break;
                 }
                 
-                // If encrypted and session is established, decrypt
+                // Nếu được mã hóa và phiên đã thiết lập, giải mã
                 if (message.Type == MessageType.Encrypted && _session.IsEstablished)
                 {
                     try
@@ -167,7 +167,7 @@ public sealed class ServerConnection : IDisposable
             }
             catch (IOException)
             {
-                _logger.Warning("Connection lost");
+                _logger.Warning("Mất kết nối");
                 break;
             }
             catch (OperationCanceledException)
@@ -176,45 +176,45 @@ public sealed class ServerConnection : IDisposable
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, "Error receiving message");
+                _logger.Exception(ex, "Lỗi nhận tin nhắn");
             }
         }
     }
     
     /// <summary>
-    /// Receives a raw length-prefixed message from the server
+    /// Nhận tin nhắn raw với tiền tố độ dài từ server
     /// </summary>
     private async Task<Message?> ReceiveRawMessageAsync(CancellationToken cancellationToken)
     {
         if (_stream is null) return null;
         
-        // Read message length
+        // Đọc độ dài tin nhắn
         var lengthBuffer = new byte[4];
         var bytesRead = await ReadExactAsync(lengthBuffer, cancellationToken);
         
         if (bytesRead < 4)
         {
-            return null; // Server disconnected
+            return null; // Server đã ngắt kết nối
         }
         
-        _logger.Debug("Raw length bytes: [{0:X2},{1:X2},{2:X2},{3:X2}]", 
+        _logger.Debug("Bytes độ dài raw: [{0:X2},{1:X2},{2:X2},{3:X2}]", 
             lengthBuffer[0], lengthBuffer[1], lengthBuffer[2], lengthBuffer[3]);
         
-        // Convert from big-endian
+        // Chuyển đổi từ big-endian
         if (BitConverter.IsLittleEndian)
         {
             Array.Reverse(lengthBuffer);
         }
         var messageLength = BitConverter.ToInt32(lengthBuffer, 0);
         
-        // Validate message length
+        // Kiểm tra độ dài tin nhắn
         if (messageLength <= 0 || messageLength > JsonMessageSerializer.MaxMessageSize)
         {
-            _logger.Warning("Invalid message length: {0}", messageLength);
+            _logger.Warning("Độ dài tin nhắn không hợp lệ: {0}", messageLength);
             return null;
         }
         
-        // Read message body
+        // Đọc body tin nhắn
         var messageBuffer = new byte[messageLength];
         bytesRead = await ReadExactAsync(messageBuffer, cancellationToken);
         
@@ -227,7 +227,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Reads exactly the requested number of bytes
+    /// Đọc chính xác số bytes được yêu cầu
     /// </summary>
     private async Task<int> ReadExactAsync(byte[] buffer, CancellationToken cancellationToken)
     {
@@ -250,13 +250,13 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Sends a message to the server
+    /// Gửi tin nhắn đến server
     /// </summary>
     public async Task SendMessageAsync(Message message, CancellationToken cancellationToken)
     {
         if (_session.IsEstablished && message.Type == MessageType.Text)
         {
-            // Encrypt text messages when session is established
+            // Mã hóa tin nhắn text khi phiên đã thiết lập
             var encrypted = await _session.EncryptMessageAsync(message);
             await SendRawMessageAsync(encrypted, cancellationToken);
         }
@@ -267,32 +267,32 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Sends a raw message without encryption
+    /// Gửi tin nhắn raw mà không mã hóa
     /// </summary>
     private async Task SendRawMessageAsync(Message message, CancellationToken cancellationToken)
     {
         if (_stream is null)
         {
-            throw new InvalidOperationException("Not connected");
+            throw new InvalidOperationException("Chưa kết nối");
         }
         
         var messageBytes = _serializer.Serialize(message);
         
-        // Create length prefix
+        // Tạo tiền tố độ dài
         var lengthBytes = BitConverter.GetBytes(messageBytes.Length);
         if (BitConverter.IsLittleEndian)
         {
             Array.Reverse(lengthBytes);
         }
         
-        // Write length + message
+        // Ghi độ dài + tin nhắn
         await _stream.WriteAsync(lengthBytes, cancellationToken);
         await _stream.WriteAsync(messageBytes, cancellationToken);
         await _stream.FlushAsync(cancellationToken);
     }
     
     /// <summary>
-    /// Disposes connection resources
+    /// Giải phóng tài nguyên kết nối
     /// </summary>
     public void Dispose()
     {

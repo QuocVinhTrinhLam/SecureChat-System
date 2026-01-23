@@ -4,21 +4,21 @@ using System.Text;
 namespace SecureChat.Core.Security.Implementations;
 
 /// <summary>
-/// HMAC-SHA256 message signing implementation.
+/// Implementation HMAC-SHA256 message signing.
 /// 
-/// Security Design:
-/// - Uses 256-bit keys for HMAC
-/// - SHA-256 provides 256-bit security strength
-/// - Constant-time signature verification to prevent timing attacks
+/// Thiết kế bảo mật:
+/// - Sử dụng khóa 256-bit cho HMAC
+/// - SHA-256 cung cấp độ mạnh bảo mật 256-bit
+/// - So sánh chữ ký constant-time để ngăn chặn timing attacks
 /// 
-/// Usage:
-/// - For message authentication when using encrypt-then-MAC pattern
-/// - Can be used with the MAC key derived via HKDF from shared secret
+/// Cách sử dụng:
+/// - Cho message authentication khi sử dụng pattern encrypt-then-MAC
+/// - Có thể sử dụng với MAC key được tính qua HKDF từ shared secret
 /// </summary>
 public sealed class HmacSha256Signer : Interfaces.IMessageSigner
 {
     /// <summary>
-    /// Recommended key size in bytes - 256 bits
+    /// Kích thước khóa khuyến nghị theo bytes - 256 bits
     /// </summary>
     private const int KeySizeBytes = 32;
 
@@ -62,15 +62,15 @@ public sealed class HmacSha256Signer : Interfaces.IMessageSigner
                 computedSignature = hmac.ComputeHash(dataBytes);
             }
 
-            // CRITICAL: Use constant-time comparison to prevent timing attacks
-            // Never use == or SequenceEqual for cryptographic comparisons
+            // QUAN TRỌNG: Sử dụng so sánh constant-time để ngăn chặn timing attacks
+            // Không bao giờ sử dụng == hoặc SequenceEqual cho so sánh mật mã
             return Task.FromResult(
                 CryptographicOperations.FixedTimeEquals(computedSignature, expectedSignature));
         }
         catch (FormatException)
         {
-            // Invalid Base64 - return false, don't throw
-            // This prevents distinguishing between format errors and signature mismatches
+            // Base64 không hợp lệ - trả về false, không throw
+            // Điều này ngăn chặn phân biệt giữa lỗi định dạng và signature không khớp
             return Task.FromResult(false);
         }
     }

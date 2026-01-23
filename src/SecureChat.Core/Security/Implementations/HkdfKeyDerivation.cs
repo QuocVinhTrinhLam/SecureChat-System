@@ -4,42 +4,42 @@ using System.Text;
 namespace SecureChat.Core.Security.Implementations;
 
 /// <summary>
-/// HKDF (HMAC-based Key Derivation Function) utility for deriving session keys
+/// Tiện ích HKDF (HMAC-based Key Derivation Function) để tính session keys
 /// 
-/// Security Design:
-/// - Derives separate keys for encryption and MAC from a single shared secret
-/// - Uses SHA-256 as the underlying hash function
-/// - Context-specific "info" parameters ensure key separation
-/// - Follows RFC 5869 for HKDF implementation
+/// Thiết kế bảo mật:
+/// - Tính các khóa riêng biệt cho encryption và MAC từ một shared secret
+/// - Sử dụng SHA-256 làm hàm hash cơ sở
+/// - Tham số "info" theo ngữ cảnh đảm bảo phân tách khóa
+/// - Tuân theo RFC 5869 cho implementation HKDF
 /// 
-/// Usage:
-/// 1. Obtain shared secret from ECDH key exchange
-/// 2. Call DeriveSessionKeys() to get encryption and MAC keys
-/// 3. Use encryption key for AES-256-GCM
-/// 4. Use MAC key for additional HMAC if needed
+/// Cách sử dụng:
+/// 1. Lấy shared secret từ trao đổi khóa ECDH
+/// 2. Gọi DeriveSessionKeys() để lấy encryption và MAC keys
+/// 3. Sử dụng encryption key cho AES-256-GCM
+/// 4. Sử dụng MAC key cho HMAC bổ sung nếu cần
 /// </summary>
 public static class HkdfKeyDerivation
 {
     /// <summary>
-    /// Derived key length in bytes - 256 bits
+    /// Độ dài khóa được tính theo bytes - 256 bits
     /// </summary>
     private const int KeyLength = 32;
 
     /// <summary>
-    /// Protocol version identifier for key derivation context
+    /// Định danh phiên bản giao thức cho ngữ cảnh tính khóa
     /// </summary>
     private const string ProtocolVersion = "SecureChat-v1";
 
     /// <summary>
-    /// Derives encryption and MAC keys from a shared secret
+    /// Tính encryption và MAC keys từ shared secret
     /// </summary>
-    /// <param name="sharedSecret">Base64-encoded shared secret from ECDH.</param>
-    /// <param name="salt">Optional salt. Uses zeros if null.</param>
-    /// <returns>Tuple of (encryptionKey, macKey) as Base64-encoded strings.</returns>
+    /// <param name="sharedSecret">Shared secret được mã hóa Base64 từ ECDH.</param>
+    /// <param name="salt">Salt tùy chọn. Sử dụng zeros nếu null.</param>
+    /// <returns>Tuple của (encryptionKey, macKey) dạng chuỗi Base64.</returns>
     /// <remarks>
-    /// Security: The shared secret should come from a secure key exchange (ECDH)
-    /// Using different "info" parameters ensures the derived keys are cryptographically
-    /// independent even though they come from the same shared secret.
+    /// Bảo mật: Shared secret cần đến từ trao đổi khóa an toàn (ECDH)
+    /// Sử dụng các tham số "info" khác nhau đảm bảo các khóa được tính
+    /// độc lập về mặt mật mã mặc dù chúng đến từ cùng shared secret.
     /// </remarks>
     public static (string encryptionKey, string macKey) DeriveSessionKeys(
         string sharedSecret, byte[]? salt = null)
@@ -48,10 +48,10 @@ public static class HkdfKeyDerivation
 
         var sharedSecretBytes = Convert.FromBase64String(sharedSecret);
         
-        // Use 32 zero bytes as default salt if not provided
+        // Sử dụng 32 zero bytes làm salt mặc định nếu không cung cấp
         salt ??= new byte[32];
 
-        // Derive encryption key with encryption-specific context
+        // Tính encryption key với ngữ cảnh dành riêng cho encryption
         var encKey = HKDF.DeriveKey(
             hashAlgorithmName: HashAlgorithmName.SHA256,
             ikm: sharedSecretBytes,
@@ -59,7 +59,7 @@ public static class HkdfKeyDerivation
             salt: salt,
             info: Encoding.Unicode.GetBytes($"{ProtocolVersion}-encryption-key"));
 
-        // Derive MAC key with MAC-specific context
+        // Tính MAC key với ngữ cảnh dành riêng cho MAC
         var macKey = HKDF.DeriveKey(
             hashAlgorithmName: HashAlgorithmName.SHA256,
             ikm: sharedSecretBytes,
@@ -67,7 +67,7 @@ public static class HkdfKeyDerivation
             salt: salt,
             info: Encoding.Unicode.GetBytes($"{ProtocolVersion}-mac-key"));
 
-        // Clear shared secret from memory
+        // Xóa shared secret khỏi bộ nhớ
         CryptographicOperations.ZeroMemory(sharedSecretBytes);
 
         return (
@@ -77,12 +77,12 @@ public static class HkdfKeyDerivation
     }
 
     /// <summary>
-    /// Derives a single key for a specific purpose.
+    /// Tính một khóa đơn cho mục đích cụ thể.
     /// </summary>
-    /// <param name="sharedSecret">Base64-encoded shared secret from ECDH.</param>
-    /// <param name="purpose">Key purpose identifier.</param>
-    /// <param name="salt">Optional salt. Uses zeros if null.</param>
-    /// <returns>Base64-encoded derived key.</returns>
+    /// <param name="sharedSecret">Shared secret được mã hóa Base64 từ ECDH.</param>
+    /// <param name="purpose">Định danh mục đích của khóa.</param>
+    /// <param name="salt">Salt tùy chọn. Sử dụng zeros nếu null.</param>
+    /// <returns>Khóa được tính dạng Base64.</returns>
     public static string DeriveKey(string sharedSecret, string purpose, byte[]? salt = null)
     {
         ArgumentNullException.ThrowIfNull(sharedSecret);
@@ -98,30 +98,30 @@ public static class HkdfKeyDerivation
             salt: salt,
             info: Encoding.Unicode.GetBytes($"{ProtocolVersion}-{purpose}"));
 
-        // Clear shared secret from memory
+        // Xóa shared secret khỏi bộ nhớ
         CryptographicOperations.ZeroMemory(sharedSecretBytes);
 
         return Convert.ToBase64String(derivedKey);
     }
 
     /// <summary>
-    /// Derives session keys with a unique session ID incorporated into the salt
-    /// This provides additional domain separation between sessions
+    /// Tính session keys với session ID duy nhất được tích hợp vào salt
+    /// Điều này cung cấp phân tách domain bổ sung giữa các phiên
     /// </summary>
-    /// <param name="sharedSecret">Base64-encoded shared secret from ECDH.</param>
-    /// <param name="sessionId">Unique session identifier.</param>
-    /// <returns>Tuple of (encryptionKey, macKey) as Base64-encoded strings.</returns>
+    /// <param name="sharedSecret">Shared secret được mã hóa Base64 từ ECDH.</param>
+    /// <param name="sessionId">Định danh phiên duy nhất.</param>
+    /// <returns>Tuple của (encryptionKey, macKey) dạng chuỗi Base64.</returns>
     public static (string encryptionKey, string macKey) DeriveSessionKeysWithId(
         string sharedSecret, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sharedSecret);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        // Use session ID as part of salt for domain separation
+        // Sử dụng session ID như một phần của salt để phân tách domain
         var sessionIdBytes = Encoding.Unicode.GetBytes(sessionId);
         var salt = new byte[32];
         
-        // Copy session ID bytes into salt
+        // Copy session ID bytes vào salt
         var copyLength = Math.Min(sessionIdBytes.Length, salt.Length);
         Array.Copy(sessionIdBytes, salt, copyLength);
 

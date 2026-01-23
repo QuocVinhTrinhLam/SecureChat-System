@@ -4,12 +4,12 @@ using SecureChat.Core.Utilities;
 namespace SecureChat.Client;
 
 /// <summary>
-/// High-level chat client that orchestrates connection and messaging.
+/// Client chat cấp cao điều phối kết nối và tin nhắn.
 /// 
-/// Security Design:
-/// - Separates UI/input handling from network operations
-/// - Prepared for future security provider integration
-/// - Event-based message notification for clean UI separation
+/// Thiết kế bảo mật:
+/// - Tách riêng xử lý UI/input khỏi các thao tác mạng
+/// - Chuẩn bị sẵn cho việc tích hợp security provider trong tương lai
+/// - Thông báo tin nhắn dựa trên event để tách biệt UI rõ ràng
 /// </summary>
 public sealed class ChatClient : IDisposable
 {
@@ -21,12 +21,12 @@ public sealed class ChatClient : IDisposable
     private bool _disposed;
     
     /// <summary>
-    /// Creates a new chat client.
+    /// Tạo một chat client mới.
     /// </summary>
-    /// <param name="host">Server hostname or IP.</param>
-    /// <param name="port">Server port.</param>
-    /// <param name="username">Username for this client.</param>
-    /// <param name="logger">Logger for events.</param>
+    /// <param name="host">Hostname hoặc IP của server.</param>
+    /// <param name="port">Cổng của server.</param>
+    /// <param name="username">Tên người dùng cho client này.</param>
+    /// <param name="logger">Logger cho các sự kiện.</param>
     public ChatClient(string host, int port, string username, ILogger logger)
     {
         _host = host;
@@ -36,63 +36,63 @@ public sealed class ChatClient : IDisposable
     }
     
     /// <summary>
-    /// Connects to the server and runs the chat session.
+    /// Kết nối đến server và chạy phiên chat.
     /// </summary>
     public async Task ConnectAndRunAsync(CancellationToken cancellationToken)
     {
-        _logger.Info("Connecting to {0}:{1}...", _host, _port);
+        _logger.Info("Đang kết nối đến {0}:{1}...", _host, _port);
         
         _connection = new ServerConnection(_host, _port, _logger);
         await _connection.ConnectAsync(cancellationToken);
         
-        _logger.Info("Connected! Performing secure key exchange...");
+        _logger.Info("Đã kết nối! Đang thực hiện trao đổi khóa bảo mật...");
         
-        // IMPORTANT: Perform key exchange BEFORE starting receive loop
-        // to avoid race condition on NetworkStream reads
+        // QUAN TRỌNG: Thực hiện trao đổi khóa TRƯỚC KHI bắt đầu receive loop
+        // để tránh race condition trên NetworkStream reads
         await _connection.PerformKeyExchangeAsync(_user.Id, _user.Username, cancellationToken);
         
         _logger.Info("---");
         _logger.Info("Phiên chat bảo mật đã sẵn sàng. Nhập tin nhắn và Enter để gửi. Ctrl+C để thoát.");
         _logger.Info("---");
         
-        // Subscribe to incoming messages
+        // Đăng ký nhận tin nhắn đến
         _connection.MessageReceived += OnMessageReceived;
         
-        // Start receiving messages in background
+        // Bắt đầu nhận tin nhắn trong background
         var receiveTask = _connection.StartReceivingAsync(cancellationToken);
         
-        // Send join message (now encrypted)
+        // Gửi tin nhắn join (bây giờ đã được mã hóa)
         await SendJoinMessageAsync(cancellationToken);
         
-        // Main input loop
+        // Vòng lặp nhập liệu chính
         await RunInputLoopAsync(cancellationToken);
         
-        // Send leave message before disconnecting
+        // Gửi tin nhắn leave trước khi ngắt kết nối
         await SendLeaveMessageAsync();
         
-        // Wait for receive task to complete
+        // Chờ receive task hoàn thành
         try
         {
             await receiveTask;
         }
         catch (OperationCanceledException)
         {
-            // Expected
+            // Đây là hành vi mong đợi
         }
     }
     
     /// <summary>
-    /// Sends the initial join message to the server.
+    /// Gửi tin nhắn join ban đầu đến server.
     /// </summary>
     private async Task SendJoinMessageAsync(CancellationToken cancellationToken)
     {
         var joinMessage = Message.CreateJoinMessage(_user.Id, _user.Username);
         await _connection!.SendMessageAsync(joinMessage, cancellationToken);
-        _logger.Security("Join message sent for user: {0}", _user.Username);
+        _logger.Security("Đã gửi tin nhắn join cho user: {0}", _user.Username);
     }
     
     /// <summary>
-    /// Sends a leave message before disconnecting.
+    /// Gửi tin nhắn leave trước khi ngắt kết nối.
     /// </summary>
     private async Task SendLeaveMessageAsync()
     {
@@ -103,12 +103,12 @@ public sealed class ChatClient : IDisposable
         }
         catch
         {
-            // Ignore errors when disconnecting
+            // Bỏ qua lỗi khi ngắt kết nối
         }
     }
     
     /// <summary>
-    /// Main loop for reading user input and sending messages.
+    /// Vòng lặp chính để đọc input người dùng và gửi tin nhắn.
     /// </summary>
     private async Task RunInputLoopAsync(CancellationToken cancellationToken)
     {
@@ -116,7 +116,7 @@ public sealed class ChatClient : IDisposable
         {
             try
             {
-                // Non-blocking read with cancellation support
+                // Đọc không chặn với hỗ trợ hủy
                 var input = await ReadLineAsync(cancellationToken);
                 
                 if (string.IsNullOrWhiteSpace(input))
@@ -124,8 +124,33 @@ public sealed class ChatClient : IDisposable
                     continue;
                 }
                 
-                // Create and send text message
-                var message = Message.CreateTextMessage(_user.Id, _user.Username, input);
+                Message message;
+                
+                // Kiểm tra cú pháp tin nhắn trực tiếp: @username message
+                if (input.StartsWith("@"))
+                {
+                    var spaceIndex = input.IndexOf(' ');
+                    if (spaceIndex > 1)
+                    {
+                        var recipientName = input[1..spaceIndex];
+                        var content = input[(spaceIndex + 1)..];
+                        message = Message.CreateDirectMessage(
+                            _user.Id, _user.Username,
+                            recipientName, recipientName,
+                            content);
+                    }
+                    else
+                    {
+                        _logger.Warning("Sử dụng: @username tin nhắn");
+                        continue;
+                    }
+                }
+                else
+                {
+                    // Tin nhắn broadcast
+                    message = Message.CreateTextMessage(_user.Id, _user.Username, input);
+                }
+                
                 await _connection!.SendMessageAsync(message, cancellationToken);
             }
             catch (OperationCanceledException)
@@ -136,11 +161,11 @@ public sealed class ChatClient : IDisposable
     }
     
     /// <summary>
-    /// Reads a line from console with cancellation support.
+    /// Đọc một dòng từ console với hỗ trợ hủy.
     /// </summary>
     private static async Task<string?> ReadLineAsync(CancellationToken cancellationToken)
     {
-        // Use a simple polling approach for console input with cancellation
+        // Sử dụng cách tiếp cận polling đơn giản cho console input với hủy
         while (!cancellationToken.IsCancellationRequested)
         {
             if (Console.KeyAvailable)
@@ -155,7 +180,7 @@ public sealed class ChatClient : IDisposable
     }
     
     /// <summary>
-    /// Handles received messages.
+    /// Xử lý tin nhắn nhận được.
     /// </summary>
     private void OnMessageReceived(object? sender, Message message)
     {
@@ -163,7 +188,7 @@ public sealed class ChatClient : IDisposable
     }
     
     /// <summary>
-    /// Displays a message to the console.
+    /// Hiển thị tin nhắn ra console.
     /// </summary>
     private void DisplayMessage(Message message)
     {
@@ -172,14 +197,31 @@ public sealed class ChatClient : IDisposable
         switch (message.Type)
         {
             case MessageType.Text:
-                if (message.SenderId == _user.Id)
+                // Kiểm tra xem đây có phải tin nhắn trực tiếp không
+                if (!string.IsNullOrEmpty(message.RecipientId))
                 {
-                    // Own message - display in different color
+                    if (message.SenderId == _user.Id)
+                    {
+                        // Tin nhắn trực tiếp gửi đi
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        Console.WriteLine($"[→ {message.RecipientName}]: {message.Content}");
+                    }
+                    else
+                    {
+                        // Tin nhắn trực tiếp nhận vào
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        Console.WriteLine($"[{message.SenderName} → Bạn]: {message.Content}");
+                    }
+                }
+                else if (message.SenderId == _user.Id)
+                {
+                    // Tin nhắn broadcast của chính mình
                     Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.WriteLine($"[You]: {message.Content}");
+                    Console.WriteLine($"[Bạn]: {message.Content}");
                 }
                 else
                 {
+                    // Tin nhắn broadcast của người khác
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine($"[{message.SenderName}]: {message.Content}");
                 }
@@ -187,22 +229,22 @@ public sealed class ChatClient : IDisposable
                 
             case MessageType.Join:
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($">>> {message.SenderName} joined the chat");
+                Console.WriteLine($">>> {message.SenderName} đã tham gia chat");
                 break;
                 
             case MessageType.Leave:
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"<<< {message.SenderName} left the chat");
+                Console.WriteLine($"<<< {message.SenderName} đã rời khỏi chat");
                 break;
                 
             case MessageType.System:
                 Console.ForegroundColor = ConsoleColor.Blue;
-                Console.WriteLine($"[System]: {message.Content}");
+                Console.WriteLine($"[Hệ thống]: {message.Content}");
                 break;
                 
             case MessageType.Error:
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"[Error]: {message.Content}");
+                Console.WriteLine($"[Lỗi]: {message.Content}");
                 break;
                 
             default:
@@ -214,7 +256,7 @@ public sealed class ChatClient : IDisposable
     }
     
     /// <summary>
-    /// Disposes client resources
+    /// Giải phóng tài nguyên của client
     /// </summary>
     public void Dispose()
     {

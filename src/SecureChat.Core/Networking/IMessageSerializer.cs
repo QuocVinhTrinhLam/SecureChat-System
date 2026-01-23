@@ -3,44 +3,44 @@ using SecureChat.Core.Models;
 namespace SecureChat.Core.Networking;
 
 /// <summary>
-/// Abstraction for message serialization/deserialization
+/// Abstraction cho việc serialize/deserialize tin nhắn
 /// 
-/// Security Design:
-/// - Separates serialization logic from transport for easier auditing
-/// - Allows pluggable formats
-/// - Implementations should validate message structure during deserialization
+/// Thiết kế bảo mật:
+/// - Tách riêng logic serialization khỏi transport để dễ audit
+/// - Cho phép các format có thể thay thế được
+/// - Implementation cần xác thực cấu trúc tin nhắn trong quá trình deserialization
 /// 
-/// Security Considerations:
-/// - Limit maximum message size to prevent DoS
-/// - Validate all required fields are present
-/// - Sanitize string fields to prevent injection
+/// Lưu ý bảo mật:
+/// - Giới hạn kích thước tin nhắn tối đa để ngăn chặn DoS
+/// - Xác thực tất cả các field bắt buộc có mặt
+/// - Làm sạch các field string để ngăn chặn injection
 /// </summary>
 public interface IMessageSerializer
 {
     /// <summary>
-    /// Serializes a message to byte array for network transmission
+    /// Serialize tin nhắn thành mảng byte để truyền qua mạng
     /// </summary>
-    /// <param name="message">The message to serialize.</param>
-    /// <returns>Byte array representation of the message.</returns>
-    /// <exception cref="ArgumentNullException">If message is null.</exception>
+    /// <param name="message">Tin nhắn cần serialize.</param>
+    /// <returns>Biểu diễn mảng byte của tin nhắn.</returns>
+    /// <exception cref="ArgumentNullException">Nếu message là null.</exception>
     byte[] Serialize(Message message);
     
     /// <summary>
-    /// Deserializes a message from byte array
+    /// Deserialize tin nhắn từ mảng byte
     /// </summary>
-    /// <param name="data">The byte array to deserialize.</param>
-    /// <returns>The deserialized message.</returns>
-    /// <exception cref="ArgumentNullException">If data is null.</exception>
-    /// <exception cref="FormatException">If data cannot be deserialized.</exception>
+    /// <param name="data">Mảng byte cần deserialize.</param>
+    /// <returns>Tin nhắn đã được deserialize.</returns>
+    /// <exception cref="ArgumentNullException">Nếu data là null.</exception>
+    /// <exception cref="FormatException">Nếu data không thể deserialize.</exception>
     /// <remarks>
-    /// Security: Implementation should validate the message structure
-    /// and reject malformed messages before returning
+    /// Bảo mật: Implementation cần xác thực cấu trúc tin nhắn
+    /// và từ chối tin nhắn không đúng định dạng trước khi trả về
     /// </remarks>
     Message Deserialize(byte[] data);
     
     /// <summary>
-    /// Gets the content type identifier for this serializer
-    /// Used for protocol negotiation
+    /// Lấy định danh content type cho serializer này
+    /// Sử dụng để đàm phán giao thức
     /// </summary>
     string ContentType { get; }
 }

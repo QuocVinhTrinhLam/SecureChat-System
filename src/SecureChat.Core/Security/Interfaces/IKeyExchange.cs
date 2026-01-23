@@ -1,27 +1,27 @@
 namespace SecureChat.Core.Security.Interfaces;
 /// <summary>
-/// Defines key exchange contract for secure session establishment
+/// Định nghĩa contract trao đổi khóa để thiết lập phiên bảo mật
 /// </summary>
 public interface IKeyExchange
 {
     /// <summary>
-    /// Identifier of the key exchange algorithm
+    /// Định danh thuật toán trao đổi khóa
     /// </summary>
     string AlgorithmIdentifier { get; }
     /// <summary>
-    /// Generate public/private key pair
+    /// Tạo cặp khóa public/private
     /// </summary>
     Task GenerateKeyPairAsync();
     /// <summary>
-    /// Get public key to send to peer
+    /// Lấy public key để gửi cho peer
     /// </summary>
     string GetPublicKey();
     /// <summary>
-    /// Derive shared secret from peer public key
+    /// Tính shared secret từ public key của peer
     /// </summary>
     Task<string> DeriveSharedSecretAsync(string peerPublicKey);
     /// <summary>
-    /// Validate received public key
+    /// Xác thực public key nhận được
     /// </summary>
     bool ValidatePublicKey(string publicKey);
 }

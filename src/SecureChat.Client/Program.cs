@@ -6,14 +6,14 @@ class Program
 {
     static async Task Main()
     {
-        // Set UTF-8 encoding for proper Vietnamese character display
-        Console.InputEncoding = Encoding.Unicode;
-        Console.OutputEncoding = Encoding.Unicode;
+        // Thiết lập encoding UTF-8 để hiển thị ký tự tiếng Việt đúng cách
+        Console.InputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
 
         Console.WriteLine("=== SecureChat Client ===");
         Console.WriteLine();
 
-        // Get username
+        // Lấy tên người dùng
         Console.Write("Nhập tên của bạn: ");
         var username = Console.ReadLine()?.Trim();
         
@@ -22,11 +22,11 @@ class Program
             username = "User" + Random.Shared.Next(1000, 9999);
         }
 
-        // Create client with console logger
+        // Tạo client với console logger
         var logger = new ConsoleLogger();
         using var client = new ChatClient("127.0.0.1", 9000, username, logger);
 
-        // Handle Ctrl+C gracefully
+        // Xử lý Ctrl+C một cách nhẹ nhàng
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
         {

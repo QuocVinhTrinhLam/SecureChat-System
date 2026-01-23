@@ -1,9 +1,9 @@
 namespace SecureChat.Core.Utilities;
 
 /// <summary>
-/// Thread-safe console logger implementation.
-/// Suitable for development and debugging; consider file-based or 
-/// structured logging for production deployments.
+/// Implementation console logger thread-safe.
+/// Phù hợp cho phát triển và debug; cân nhắc file-based hoặc 
+/// structured logging cho môi trường production.
 /// </summary>
 public sealed class ConsoleLogger : ILogger
 {
@@ -13,9 +13,9 @@ public sealed class ConsoleLogger : ILogger
     public LogLevel MinimumLevel { get; set; } = LogLevel.Info;
     
     /// <summary>
-    /// Creates a new console logger with the specified minimum level.
+    /// Tạo console logger mới với mức tối thiểu được chỉ định.
     /// </summary>
-    /// <param name="minimumLevel">Minimum log level to display.</param>
+    /// <param name="minimumLevel">Mức log tối thiểu để hiển thị.</param>
     public ConsoleLogger(LogLevel minimumLevel = LogLevel.Info)
     {
         MinimumLevel = minimumLevel;
@@ -24,7 +24,7 @@ public sealed class ConsoleLogger : ILogger
     /// <inheritdoc />
     public void Log(LogLevel level, string message, params object[] args)
     {
-        // Security events are always logged
+        // Security events luôn được log
         if (level != LogLevel.Security && level < MinimumLevel)
         {
             return;
@@ -71,14 +71,14 @@ public sealed class ConsoleLogger : ILogger
     /// <inheritdoc />
     public void Exception(Exception ex, string context)
     {
-        // Security: Log exception type and message, but be careful
-        // not to log sensitive data that might be in the exception
+        // Bảo mật: Log loại và message exception, nhưng cẩn thận
+        // không log dữ liệu nhạy cảm có thể có trong exception
         Log(LogLevel.Error, "{0}: {1} - {2}", context, ex.GetType().Name, ex.Message);
         
-        // Only log stack trace in debug mode
+        // Chỉ log stack trace trong chế độ debug
         if (MinimumLevel == LogLevel.Debug)
         {
-            Log(LogLevel.Debug, "Stack trace: {0}", ex.StackTrace ?? "Not available");
+            Log(LogLevel.Debug, "Stack trace: {0}", ex.StackTrace ?? "Không có");
         }
     }
     

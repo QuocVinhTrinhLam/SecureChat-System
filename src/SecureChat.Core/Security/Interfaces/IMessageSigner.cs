@@ -1,66 +1,66 @@
 namespace SecureChat.Core.Security.Interfaces;
 
 /// <summary>
-/// Abstraction for message integrity and authenticity verification
+/// Abstraction cho xác minh tính toàn vẹn và tính xác thực của tin nhắn
 /// 
-/// Security Purpose:
-/// - Ensures messages haven't been tampered with in transit
-/// - Provides sender authenticity
-/// - Prevents message forgery attacks
+/// Mục đích bảo mật:
+/// - Đảm bảo tin nhắn không bị giả mạo trong quá trình truyền
+/// - Cung cấp tính xác thực của người gửi
+/// - Ngăn chặn tấn công giả mạo tin nhắn
 /// 
-/// Implementation Options:
-/// - HMAC-SHA256: Fast, symmetric, requires shared key
-/// - RSA-PSS: Asymmetric, provides non-repudiation
-/// - ECDSA: Asymmetric, smaller signatures than RSA
+/// Tùy chọn implementation:
+/// - HMAC-SHA256: Nhanh, đối xứng, yêu cầu shared key
+/// - RSA-PSS: Bất đối xứng, cung cấp non-repudiation
+/// - ECDSA: Bất đối xứng, chữ ký nhỏ hơn RSA
 /// 
-/// Security Notes:
-/// - Sign-then-encrypt is generally preferred over encrypt-then-sign
-/// - Include message ID and timestamp in signed data to prevent replay
-/// - Use constant-time comparison for signature verification
+/// Lưu ý bảo mật:
+/// - Sign-then-encrypt thường được ưa chuộng hơn encrypt-then-sign
+/// - Bao gồm message ID và timestamp trong dữ liệu ký để ngăn chặn replay
+/// - Sử dụng so sánh constant-time cho xác minh chữ ký
 /// </summary>
 public interface IMessageSigner
 {
     /// <summary>
-    /// Signs the provided data.
+    /// Ký dữ liệu được cung cấp.
     /// </summary>
-    /// <param name="data">The data to sign.</param>
+    /// <param name="data">Dữ liệu cần ký.</param>
     /// <param name="key">
-    /// For HMAC: Base64-encoded shared secret key
-    /// For asymmetric: Base64-encoded private key
+    /// Với HMAC: Khóa bí mật shared dạng Base64
+    /// Với bất đối xứng: Private key dạng Base64
     /// </param>
-    /// <returns>Base64-encoded signature.</returns>
+    /// <returns>Chữ ký dạng Base64.</returns>
     /// <remarks>
-    /// Security: The key parameter must be kept secret
-    /// For asymmetric signing, this should be the sender's private key
+    /// Bảo mật: Tham số key phải được giữ bí mật
+    /// Với ký bất đối xứng, đây nên là private key của người gửi
     /// </remarks>
     Task<string> SignAsync(string data, string key);
     
     /// <summary>
-    /// Verifies a signature against the provided data
+    /// Xác minh chữ ký với dữ liệu được cung cấp
     /// </summary>
-    /// <param name="data">The original signed data.</param>
-    /// <param name="signature">Base64-encoded signature to verify.</param>
+    /// <param name="data">Dữ liệu gốc đã ký.</param>
+    /// <param name="signature">Chữ ký dạng Base64 cần xác minh.</param>
     /// <param name="key">
-    /// For HMAC: Base64-encoded shared secret key
-    /// For asymmetric: Base64-encoded public key
+    /// Với HMAC: Khóa bí mật shared dạng Base64
+    /// Với bất đối xứng: Public key dạng Base64
     /// </param>
-    /// <returns>True if signature is valid, false otherwise.</returns>
+    /// <returns>True nếu chữ ký hợp lệ, false nếu không.</returns>
     /// <remarks>
-    /// Security Critical: Must use constant-time comparison to prevent timing attacks
-    /// Never throw exceptions for invalid signatures - return false instead
+    /// Bảo mật quan trọng: Phải sử dụng so sánh constant-time để ngăn chặn timing attacks
+    /// Không bao giờ throw exception cho chữ ký không hợp lệ - trả về false thay vào đó
     /// </remarks>
     Task<bool> VerifyAsync(string data, string signature, string key);
     
     /// <summary>
-    /// Generates a key suitable for this signing algorithm
-    /// For HMAC, generates a random key
-    /// For asymmetric, generates a key pair
+    /// Tạo khóa phù hợp cho thuật toán ký này
+    /// Với HMAC, tạo khóa ngẫu nhiên
+    /// Với bất đối xứng, tạo cặp khóa
     /// </summary>
-    /// <returns>Base64-encoded key material.</returns>
+    /// <returns>Key material dạng Base64.</returns>
     string GenerateKey();
     
     /// <summary>
-    /// Gets the algorithm identifier for message metadata
+    /// Lấy định danh thuật toán cho message metadata
     /// </summary>
     string AlgorithmIdentifier { get; }
 }

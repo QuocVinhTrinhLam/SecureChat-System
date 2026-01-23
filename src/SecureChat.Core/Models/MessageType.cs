@@ -1,52 +1,52 @@
 namespace SecureChat.Core.Models;
 
 /// <summary>
-/// Defines the types of messages that can be exchanged in the chat system
-/// Security Note: Message types help enforce protocol state machine and prevent
-/// out-of-order operations
+/// Định nghĩa các loại tin nhắn có thể được trao đổi trong hệ thống chat
+/// Lưu ý bảo mật: Loại tin nhắn giúp thực thi máy trạng thái giao thức và ngăn chặn
+/// các thao tác không đúng thứ tự
 /// </summary>
 public enum MessageType
 {
     /// <summary>
-    /// Regular text message between users
-    /// In future phases, this content will be encrypted with session keys
+    /// Tin nhắn văn bản thông thường giữa người dùng
+    /// Trong các giai đoạn tiếp theo, nội dung này sẽ được mã hóa với session keys
     /// </summary>
     Text = 0,
     
     /// <summary>
-    /// User joining the chat room
-    /// Security: Triggers key exchange protocol in secure mode
+    /// Người dùng tham gia phòng chat
+    /// Bảo mật: Kích hoạt giao thức trao đổi khóa trong chế độ bảo mật
     /// </summary>
     Join = 1,
     
     /// <summary>
-    /// User leaving the chat room
-    /// Security: Should trigger session key rotation for forward secrecy
+    /// Người dùng rời khỏi phòng chat
+    /// Bảo mật: Nên kích hoạt rotation khóa phiên để đảm bảo forward secrecy
     /// </summary>
     Leave = 2,
     
     /// <summary>
-    /// Key exchange message for establishing session keys
-    /// Contains public key material
-    /// Security Critical: Must validate key parameters to prevent MITM
+    /// Tin nhắn trao đổi khóa để thiết lập session keys
+    /// Chứa key material công khai
+    /// Bảo mật quan trọng: Phải xác thực các tham số khóa để ngăn chặn MITM
     /// </summary>
     KeyExchange = 3,
     
     /// <summary>
-    /// Encrypted payload message
-    /// Content is ciphertext; requires SecurityMetadata for decryption
+    /// Tin nhắn payload đã mã hóa
+    /// Nội dung là ciphertext; yêu cầu SecurityMetadata để giải mã
     /// </summary>
     Encrypted = 4,
     
     /// <summary>
-    /// Error notification from server or client
-    /// Security: Should not leak sensitive information in error messages
+    /// Thông báo lỗi từ server hoặc client
+    /// Bảo mật: Không nên tiết lộ thông tin nhạy cảm trong thông báo lỗi
     /// </summary>
     Error = 5,
     
     /// <summary>
-    /// System/server broadcast message
-    /// Used for announcements and connection status updates
+    /// Tin nhắn broadcast từ hệ thống/server
+    /// Sử dụng cho thông báo và cập nhật trạng thái kết nối
     /// </summary>
     System = 6
 }

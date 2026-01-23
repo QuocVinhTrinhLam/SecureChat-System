@@ -6,33 +6,33 @@ using SecureChat.Core.Models;
 namespace SecureChat.Core.Networking;
 
 /// <summary>
-/// JSON-based message serializer using System.Text.Json
+/// JSON message serializer sử dụng System.Text.Json
 /// 
-/// Security Features:
-/// - Uses strict deserialization options
-/// - Validates message structure
-/// - Limits maximum message size
-/// - UTF-8 encoding for consistent handling
+/// Tính năng bảo mật:
+/// - Sử dụng các tùy chọn deserialization nghiêm ngặt
+/// - Xác thực cấu trúc tin nhắn
+/// - Giới hạn kích thước tin nhắn tối đa
+/// - Encoding UTF-8 để xử lý nhất quán
 /// </summary>
 public sealed class JsonMessageSerializer : IMessageSerializer
 {
     /// <summary>
-    /// Maximum allowed message size in bytes
-    /// Security: Prevents memory exhaustion attacks from oversized messages
+    /// Kích thước tin nhắn tối đa cho phép tính bằng bytes
+    /// Bảo mật: Ngăn chặn tấn công làm cạn kiệt bộ nhớ từ tin nhắn quá lớn
     /// </summary>
     public const int MaxMessageSize = 64 * 1024; // 64 KB
     
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false, // Compact format for network efficiency
+        WriteIndented = false, // Định dạng compact cho hiệu quả mạng
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         
-        // Security: Strict mode - don't allow extra fields that could be attack vectors
-        // Note: This is the default in System.Text.Json
+        // Bảo mật: Chế độ nghiêm ngặt - không cho phép các field thừa có thể là attack vectors
+        // Lưu ý: Đây là mặc định trong System.Text.Json
         PropertyNameCaseInsensitive = true,
         
-        // Security: Use string enums for better debugging and protocol clarity
+        // Bảo mật: Sử dụng string enums để debug tốt hơn và rõ ràng giao thức
         Converters = { new JsonStringEnumConverter() }
     };
     
@@ -44,17 +44,17 @@ public sealed class JsonMessageSerializer : IMessageSerializer
     {
         ArgumentNullException.ThrowIfNull(message);
         
-        // Validate message before serialization
+        // Xác thực tin nhắn trước khi serialize
         ValidateMessage(message);
         
         var json = JsonSerializer.Serialize(message, SerializerOptions);
         var bytes = Encoding.Unicode.GetBytes(json);
         
-        // Security: Check size before returning
+        // Bảo mật: Kiểm tra kích thước trước khi trả về
         if (bytes.Length > MaxMessageSize)
         {
             throw new InvalidOperationException(
-                $"Serialized message exceeds maximum size of {MaxMessageSize} bytes");
+                $"Tin nhắn serialize vượt quá kích thước tối đa {MaxMessageSize} bytes");
         }
         
         return bytes;
@@ -65,16 +65,16 @@ public sealed class JsonMessageSerializer : IMessageSerializer
     {
         ArgumentNullException.ThrowIfNull(data);
         
-        // Security: Check size before processing
+        // Bảo mật: Kiểm tra kích thước trước khi xử lý
         if (data.Length > MaxMessageSize)
         {
             throw new FormatException(
-                $"Message exceeds maximum allowed size of {MaxMessageSize} bytes");
+                $"Tin nhắn vượt quá kích thước tối đa cho phép {MaxMessageSize} bytes");
         }
         
         if (data.Length == 0)
         {
-            throw new FormatException("Cannot deserialize empty data");
+            throw new FormatException("Không thể deserialize dữ liệu rỗng");
         }
         
         try
@@ -84,51 +84,51 @@ public sealed class JsonMessageSerializer : IMessageSerializer
             
             if (message is null)
             {
-                throw new FormatException("Deserialized message is null");
+                throw new FormatException("Tin nhắn deserialize là null");
             }
             
-            // Validate the deserialized message
+            // Xác thực tin nhắn đã deserialize
             ValidateMessage(message);
             
             return message;
         }
         catch (JsonException ex)
         {
-            // Security: Don't expose internal JSON parsing details
-            throw new FormatException("Invalid message format", ex);
+            // Bảo mật: Không tiết lộ chi tiết JSON parsing nội bộ
+            throw new FormatException("Định dạng tin nhắn không hợp lệ", ex);
         }
     }
     
     /// <summary>
-    /// Validates a message for required fields and constraints
-    /// Security: Rejects malformed messages early in the pipeline
+    /// Xác thực tin nhắn với các field bắt buộc và ràng buộc
+    /// Bảo mật: Từ chối tin nhắn không đúng định dạng sớm trong pipeline
     /// </summary>
     private static void ValidateMessage(Message message)
     {
-        // Validate required fields
+        // Xác thực các field bắt buộc
         if (string.IsNullOrEmpty(message.Id))
         {
-            throw new FormatException("Message ID is required");
+            throw new FormatException("Message ID là bắt buộc");
         }
         
         if (string.IsNullOrEmpty(message.SenderId))
         {
-            throw new FormatException("Sender ID is required");
+            throw new FormatException("Sender ID là bắt buộc");
         }
         
-        // Security: Validate content length
-        const int MaxContentLength = 10_000; // Characters
+        // Bảo mật: Xác thực độ dài content
+        const int MaxContentLength = 10_000; // Ký tự
         if (message.Content?.Length > MaxContentLength)
         {
-            throw new FormatException($"Message content exceeds maximum length of {MaxContentLength}");
+            throw new FormatException($"Nội dung tin nhắn vượt quá độ dài tối đa {MaxContentLength}");
         }
         
-        // Security: Validate timestamp is reasonable
-        // This helps prevent replay attacks
+        // Bảo mật: Xác thực timestamp hợp lý
+        // Điều này giúp ngăn chặn replay attacks
         var timeDiff = DateTime.UtcNow - message.Timestamp;
         if (Math.Abs(timeDiff.TotalMinutes) > 5)
         {
-            throw new FormatException("Message timestamp is outside acceptable range");
+            throw new FormatException("Timestamp tin nhắn nằm ngoài phạm vi chấp nhận được");
         }
     }
 }

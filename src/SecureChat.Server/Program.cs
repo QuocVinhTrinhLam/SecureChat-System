@@ -6,8 +6,8 @@ class Program
 {
     static async Task Main()
     {
-        Console.InputEncoding = Encoding.Unicode;
-        Console.OutputEncoding = Encoding.Unicode;
+        Console.InputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
         using ILoggerFactory loggerFactory =
             LoggerFactory.Create(builder =>
             {

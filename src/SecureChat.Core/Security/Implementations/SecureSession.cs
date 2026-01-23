@@ -4,8 +4,8 @@ using System.Text.Json;
 
 namespace SecureChat.Core.Security.Implementations;
 /// <summary>
-/// Manages a secure communication session, orchestrating key exchange,
-/// encryption, and message authentication
+/// Quản lý phiên giao tiếp bảo mật, điều phối trao đổi khóa,
+/// mã hóa và xác thực tin nhắn
 /// </summary>
 public sealed class SecureSession : IDisposable
 {
@@ -17,22 +17,22 @@ public sealed class SecureSession : IDisposable
     private string? _macKey;
     private bool _disposed;
     /// <summary>
-    /// Gets whether the session has completed key exchange and is ready for encryption
+    /// Kiểm tra phiên đã hoàn thành trao đổi khóa và sẵn sàng mã hóa chưa
     /// </summary>
     public bool IsEstablished => _encryptionKey is not null;
     /// <summary>
-    /// Gets the unique session identifier
+    /// Lấy định danh phiên duy nhất
     /// </summary>
     public string? SessionId => _sessionId;
     /// <summary>
-    /// Creates a secure session with default cryptographic implementations
+    /// Tạo phiên bảo mật với các implementation mật mã mặc định
     /// </summary>
     public SecureSession()
         : this(new EcdhKeyExchange(), new AesGcmEncryption(), new HmacSha256Signer())
     {
     }
     /// <summary>
-    /// Creates a secure session with custom cryptographic implementations
+    /// Tạo phiên bảo mật với các implementation mật mã tùy chỉnh
     /// </summary>
     public SecureSession(
         IKeyExchange keyExchange,
@@ -44,7 +44,7 @@ public sealed class SecureSession : IDisposable
         _signer = signer;
     }
     /// <summary>
-    /// Initializes the session by generating a local key pair
+    /// Khởi tạo phiên bằng cách tạo cặp khóa cục bộ
     /// </summary>
     public async Task InitializeAsync()
     {
@@ -53,7 +53,7 @@ public sealed class SecureSession : IDisposable
         await _keyExchange.GenerateKeyPairAsync();
     }
     /// <summary>
-    /// Creates a key exchange message containing the local public key
+    /// Tạo tin nhắn trao đổi khóa chứa khóa công khai cục bộ
     /// </summary>
     public Message GetKeyExchangeMessage(string senderId, string senderName)
     {
@@ -72,25 +72,25 @@ public sealed class SecureSession : IDisposable
         };
     }
     /// <summary>
-    /// Processes a received key exchange message and derives session keys
+    /// Xử lý tin nhắn trao đổi khóa nhận được và tính session keys
     /// </summary>
     public async Task ProcessKeyExchangeMessageAsync(Message message)
     {
         ThrowIfDisposed();
         if (message.Type != MessageType.KeyExchange)
-            throw new ArgumentException("Expected KeyExchange message type", nameof(message));
+            throw new ArgumentException("Mong đợi loại tin nhắn KeyExchange", nameof(message));
         if (string.IsNullOrEmpty(message.Content))
-            throw new ArgumentException("Key exchange message missing public key", nameof(message));
+            throw new ArgumentException("Tin nhắn trao đổi khóa thiếu public key", nameof(message));
         if (!_keyExchange.ValidatePublicKey(message.Content))
-            throw new SecurityException("Invalid peer public key");
+            throw new SecurityException("Khóa công khai của peer không hợp lệ");
         var sharedSecret = await _keyExchange.DeriveSharedSecretAsync(message.Content);
         var (encKey, macKey) = HkdfKeyDerivation.DeriveSessionKeys(sharedSecret);
         _encryptionKey = encKey;
         _macKey = macKey;
     }
     /// <summary>
-    /// Encrypts a plaintext message for secure transmission
-    /// Client encrypt outgoing message
+    /// Mã hóa tin nhắn plaintext để truyền bảo mật
+    /// Client mã hóa tin nhắn gửi đi
     /// </summary>
     public async Task<Message> EncryptMessageAsync(Message message)
     {
@@ -107,7 +107,7 @@ public sealed class SecureSession : IDisposable
         var (ciphertext, iv, tag) =
             await _encryption.EncryptAsync(plaintextJson, _encryptionKey!);
         
-        // Compute HMAC over ciphertext for integrity verification
+        // Tính HMAC trên ciphertext để xác minh tính toàn vẹn
         var hmac = await _signer.SignAsync(ciphertext, _macKey!);
         
         return new Message
@@ -129,30 +129,30 @@ public sealed class SecureSession : IDisposable
         };
     }
     /// <summary>
-    /// Decrypts a received encrypted message
+    /// Giải mã tin nhắn mã hóa nhận được
     /// </summary>
     public async Task<Message> DecryptMessageAsync(Message encryptedMessage)
     {
         ThrowIfDisposed();
         ThrowIfNotEstablished();
         if (encryptedMessage.Type != MessageType.Encrypted)
-            throw new ArgumentException("Expected Encrypted message type", nameof(encryptedMessage));
+            throw new ArgumentException("Mong đợi loại tin nhắn Encrypted", nameof(encryptedMessage));
         var metadata = encryptedMessage.SecurityMetadata
-            ?? throw new ArgumentException("Missing security metadata", nameof(encryptedMessage));
+            ?? throw new ArgumentException("Thiếu security metadata", nameof(encryptedMessage));
         if (string.IsNullOrEmpty(metadata.InitializationVector) ||
             string.IsNullOrEmpty(metadata.Signature))
-            throw new ArgumentException("Incomplete security metadata", nameof(encryptedMessage));
+            throw new ArgumentException("Security metadata không đầy đủ", nameof(encryptedMessage));
         if (metadata.Algorithm != _encryption.AlgorithmIdentifier)
-            throw new SecurityException($"Unsupported encryption algorithm: {metadata.Algorithm}");
+            throw new SecurityException($"Thuật toán mã hóa không được hỗ trợ: {metadata.Algorithm}");
         
-        // Verify HMAC before decryption
+        // Xác minh HMAC trước khi giải mã
         if (string.IsNullOrEmpty(metadata.Hmac))
-            throw new SecurityException("Missing HMAC in encrypted message");
+            throw new SecurityException("Thiếu HMAC trong tin nhắn mã hóa");
         
         var isHmacValid = await _signer.VerifyAsync(
             encryptedMessage.Content, metadata.Hmac, _macKey!);
         if (!isHmacValid)
-            throw new SecurityException("HMAC verification failed - message integrity compromised");
+            throw new SecurityException("Xác minh HMAC thất bại - tính toàn vẹn tin nhắn bị xâm phạm");
         
         var plaintextJson = await _encryption.DecryptAsync(
             encryptedMessage.Content,
@@ -171,7 +171,7 @@ public sealed class SecureSession : IDisposable
         };
     }
     /// <summary>
-    /// Releases cryptographic resources and clears sensitive material
+    /// Giải phóng tài nguyên mật mã và xóa dữ liệu nhạy cảm
     /// </summary>
     public void Dispose()
     {
@@ -191,20 +191,20 @@ public sealed class SecureSession : IDisposable
     {
         if (!IsEstablished)
             throw new InvalidOperationException(
-                "Session not established. Complete key exchange first.");
+                "Phiên chưa được thiết lập. Hoàn thành trao đổi khóa trước.");
     }
 }
 /// <summary>
-/// Represents a security-related cryptographic failure
+/// Đại diện cho lỗi mật mã liên quan đến bảo mật
 /// </summary>
 public class SecurityException : Exception
 {
     /// <summary>
-    /// Creates a new security exception
+    /// Tạo security exception mới
     /// </summary>
     public SecurityException(string message) : base(message) { }
     /// <summary>
-    /// Creates a new security exception with an inner exception
+    /// Tạo security exception mới với inner exception
     /// </summary>
     public SecurityException(string message, Exception inner) : base(message, inner) { }
 }
