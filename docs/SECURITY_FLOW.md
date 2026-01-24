@@ -223,11 +223,11 @@ flowchart LR
 
 | Hạn chế | Mức độ | Mô tả |
 |---------|--------|-------|
-| Không có xác thực lẫn nhau | 🔴 Cao | TOFU (Trust On First Use) |
-| Không có key rotation | 🟡 Trung bình | Khóa cố định trong suốt phiên |
-| Không có session resumption | 🟢 Thấp | Phải trao đổi khóa mới mỗi lần kết nối |
-| Không có PKI | 🔴 Cao | Không có certificate authority |
-| Timestamp validation client-side | 🟡 Trung bình | Server không xác minh timestamp |
+| Không có xác thực lẫn nhau | Cao | TOFU (Trust On First Use) |
+| Không có key rotation | Trung bình | Khóa cố định trong suốt phiên |
+| Không có session resumption | Thấp | Phải trao đổi khóa mới mỗi lần kết nối |
+| Không có PKI | Cao | Không có certificate authority |
+| Timestamp validation client-side | Trung bình | Server không xác minh timestamp |
 
 ### Chi Tiết Hạn Chế
 
@@ -280,11 +280,11 @@ flowchart LR
 
 | Tấn công | Trạng thái | Biện pháp |
 |----------|------------|-----------|
-| Man-in-the-Middle | ⚠️ Partial | ECDH key validation |
-| Replay Attack | ✅ Mitigated | Message ID + Timestamp |
-| Timing Attack | ✅ Mitigated | FixedTimeEquals |
-| Invalid Curve Attack | ✅ Mitigated | Public key validation |
-| Tampering | ✅ Mitigated | AES-GCM + HMAC |
+| Man-in-the-Middle | Cần cải thiện | ECDH key validation |
+| Replay Attack | Đã xử lý | Message ID + Timestamp |
+| Timing Attack | Đã xử lý | FixedTimeEquals |
+| Invalid Curve Attack | Đã xử lý | Public key validation |
+| Tampering | Đã xử lý | AES-GCM + HMAC |
 
 ### Chi Tiết Biện Pháp
 
