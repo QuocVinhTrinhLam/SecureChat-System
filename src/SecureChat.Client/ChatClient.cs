@@ -20,6 +20,10 @@ public sealed class ChatClient : IDisposable
     private ServerConnection? _connection;
     private bool _disposed;
     
+    // Danh sách users online (thread-safe)
+    private readonly HashSet<string> _onlineUsers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _usersLock = new();
+    
     /// <summary>
     /// Tạo một chat client mới.
     /// </summary>
@@ -134,6 +138,14 @@ public sealed class ChatClient : IDisposable
                     {
                         var recipientName = input[1..spaceIndex];
                         var content = input[(spaceIndex + 1)..];
+                        
+                        // Kiểm tra xem người nhận có online không
+                        if (!IsUserOnline(recipientName))
+                        {
+                            _logger.Warning("User '{0}' không online. Gõ /users để xem danh sách.", recipientName);
+                            continue;
+                        }
+                        
                         message = Message.CreateDirectMessage(
                             _user.Id, _user.Username,
                             recipientName, recipientName,
@@ -144,6 +156,12 @@ public sealed class ChatClient : IDisposable
                         _logger.Warning("Sử dụng: @username tin nhắn");
                         continue;
                     }
+                }
+                else if (input.Equals("/users", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Hiển thị danh sách users online
+                    DisplayOnlineUsers();
+                    continue;
                 }
                 else
                 {
@@ -247,9 +265,71 @@ public sealed class ChatClient : IDisposable
                 Console.WriteLine($"[Lỗi]: {message.Content}");
                 break;
                 
+            case MessageType.UserList:
+                // Cập nhật danh sách users online
+                UpdateOnlineUsers(message.Content);
+                DisplayOnlineUsers();
+                break;
+                
             default:
                 Console.WriteLine($"[{message.Type}]: {message.Content}");
                 break;
+        }
+        
+        Console.ForegroundColor = originalColor;
+    }
+    
+    /// <summary>
+    /// Cập nhật danh sách users online từ server
+    /// </summary>
+    private void UpdateOnlineUsers(string userListContent)
+    {
+        lock (_usersLock)
+        {
+            _onlineUsers.Clear();
+            if (!string.IsNullOrEmpty(userListContent))
+            {
+                foreach (var user in userListContent.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var trimmed = user.Trim();
+                    if (!string.IsNullOrEmpty(trimmed) && !trimmed.Equals(_user.Username, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _onlineUsers.Add(trimmed);
+                    }
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Kiểm tra xem user có online không
+    /// </summary>
+    private bool IsUserOnline(string username)
+    {
+        lock (_usersLock)
+        {
+            return _onlineUsers.Contains(username);
+        }
+    }
+    
+    /// <summary>
+    /// Hiển thị danh sách users online
+    /// </summary>
+    private void DisplayOnlineUsers()
+    {
+        var originalColor = Console.ForegroundColor;
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        
+        lock (_usersLock)
+        {
+            if (_onlineUsers.Count == 0)
+            {
+                Console.WriteLine("[Users online]: Chưa có ai khác online.");
+            }
+            else
+            {
+                Console.WriteLine($"[Users online]: {string.Join(", ", _onlineUsers)}");
+            }
         }
         
         Console.ForegroundColor = originalColor;

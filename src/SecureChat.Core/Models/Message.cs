@@ -195,4 +195,19 @@ public sealed class Message
             Content = $"{userName} đã rời khỏi chat"
         };
     }
+    
+    /// <summary>
+    /// Tạo tin nhắn danh sách người dùng online
+    /// Content chứa danh sách usernames phân cách bởi dấu phẩy
+    /// </summary>
+    public static Message CreateUserListMessage(IEnumerable<string> usernames)
+    {
+        return new Message
+        {
+            Type = MessageType.UserList,
+            SenderId = "SYSTEM",
+            SenderName = "Hệ thống",
+            Content = string.Join(",", usernames)
+        };
+    }
 }

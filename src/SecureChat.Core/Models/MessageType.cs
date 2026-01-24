@@ -48,5 +48,11 @@ public enum MessageType
     /// Tin nhắn broadcast từ hệ thống/server
     /// Sử dụng cho thông báo và cập nhật trạng thái kết nối
     /// </summary>
-    System = 6
+    System = 6,
+    
+    /// <summary>
+    /// Danh sách người dùng online
+    /// Server gửi khi có người join/leave để cập nhật danh sách cho clients
+    /// </summary>
+    UserList = 7
 }

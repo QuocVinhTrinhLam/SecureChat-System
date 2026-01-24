@@ -101,6 +101,8 @@ public sealed class SecureSession : IDisposable
             type = (int)message.Type,
             senderId = message.SenderId,
             senderName = message.SenderName,
+            recipientId = message.RecipientId,
+            recipientName = message.RecipientName,
             content = message.Content,
             timestamp = message.Timestamp
         });
@@ -116,6 +118,8 @@ public sealed class SecureSession : IDisposable
             Type = MessageType.Encrypted,
             SenderId = message.SenderId,
             SenderName = message.SenderName,
+            RecipientId = message.RecipientId,
+            RecipientName = message.RecipientName,
             Content = ciphertext,
             Timestamp = message.Timestamp,
             SecurityMetadata = new SecurityMetadata
@@ -160,12 +164,23 @@ public sealed class SecureSession : IDisposable
             metadata.InitializationVector,
             metadata.Signature);
         var inner = JsonSerializer.Deserialize<JsonElement>(plaintextJson);
+        
+        // Lấy recipientId và recipientName nếu có
+        string? recipientId = null;
+        string? recipientName = null;
+        if (inner.TryGetProperty("recipientId", out var recipientIdProp) && recipientIdProp.ValueKind != JsonValueKind.Null)
+            recipientId = recipientIdProp.GetString();
+        if (inner.TryGetProperty("recipientName", out var recipientNameProp) && recipientNameProp.ValueKind != JsonValueKind.Null)
+            recipientName = recipientNameProp.GetString();
+        
         return new Message
         {
             Id = encryptedMessage.Id,
             Type = (MessageType)inner.GetProperty("type").GetInt32(),
             SenderId = inner.GetProperty("senderId").GetString() ?? string.Empty,
             SenderName = inner.GetProperty("senderName").GetString() ?? string.Empty,
+            RecipientId = recipientId,
+            RecipientName = recipientName,
             Content = inner.GetProperty("content").GetString() ?? string.Empty,
             Timestamp = inner.GetProperty("timestamp").GetDateTime()
         };

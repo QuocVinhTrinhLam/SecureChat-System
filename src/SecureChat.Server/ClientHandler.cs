@@ -263,16 +263,16 @@ public class ClientHandler : IDisposable
         
         Console.WriteLine($"[SERVER] {User} đã tham gia từ {ClientEndpoint}");
         
-        // Gửi danh sách users
+        // Gửi danh sách users cho client mới
         var onlineUsers = _manager.GetOnlineUsers();
-        var userListText = onlineUsers.Count > 0 
-            ? $"Users online: {string.Join(", ", onlineUsers)}"
-            : "Bạn là người đầu tiên tham gia!";
+        await SendUserListAsync(onlineUsers);
         
-        await SendSystemMessageAsync($"Chào mừng {User}! {userListText}\nGửi tin nhắn riêng: @username nội dung\nVui lòng gửi tin nhắn KeyExchange để bắt đầu phiên bảo mật.");
+        // Gửi tin nhắn chào mừng
+        await SendSystemMessageAsync($"Chào mừng {User}!\nGửi tin nhắn riêng: @username nội dung\nVui lòng gửi tin nhắn KeyExchange để bắt đầu phiên bảo mật.");
         
-        // Thông báo cho các clients khác
+        // Thông báo cho các clients khác và gửi danh sách users mới
         var joinNotification = Message.CreateJoinMessage(message.SenderId, User);
+        var userListMessage = Message.CreateUserListMessage(onlineUsers);
         var allClients = _manager.GetAllClients();
         foreach (var client in allClients)
         {
@@ -281,10 +281,20 @@ public class ClientHandler : IDisposable
                 try
                 {
                     await client.SendMessageAsync(joinNotification);
+                    await client.SendMessageAsync(userListMessage);
                 }
                 catch { /* bỏ qua */ }
             }
         }
+    }
+    
+    /// <summary>
+    /// Gửi danh sách users online
+    /// </summary>
+    private async Task SendUserListAsync(List<string> users)
+    {
+        var message = Message.CreateUserListMessage(users);
+        await SendMessageAsync(message);
     }
     /// <summary>
     /// Gửi tin nhắn raw sử dụng định dạng JSON với tiền tố độ dài
@@ -381,10 +391,46 @@ public class ClientHandler : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        
+        // Thông báo cho các clients khác về việc user rời đi
+        if (User != "Ẩn danh")
+        {
+            var leaveNotification = Message.CreateLeaveMessage(User, User);
+            var allClients = _manager.GetAllClients();
+            foreach (var client in allClients)
+            {
+                if (client != this)
+                {
+                    try
+                    {
+                        client.SendMessageAsync(leaveNotification).Wait();
+                    }
+                    catch { /* bỏ qua */ }
+                }
+            }
+        }
+        
         _session.Dispose();
         _stream.Close();
         _client.Close();
         _manager.RemoveClient(this);
+        
+        // Gửi danh sách users mới sau khi remove
+        if (User != "Ẩn danh")
+        {
+            var updatedUsers = _manager.GetOnlineUsers();
+            var userListMessage = Message.CreateUserListMessage(updatedUsers);
+            var remainingClients = _manager.GetAllClients();
+            foreach (var client in remainingClients)
+            {
+                try
+                {
+                    client.SendMessageAsync(userListMessage).Wait();
+                }
+                catch { /* bỏ qua */ }
+            }
+        }
+        
         Console.WriteLine($"[SERVER] Client {ClientEndpoint} đã ngắt kết nối");
     }
 }
