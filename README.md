@@ -128,26 +128,30 @@ MAC Key ─────>│  HMAC-SHA256 │
 }
 ```
 
-### 6. Routing tin nhắn qua Server
+### 6. Routing tin nhắn qua Server (E2E Encryption)
+
+Tin nhắn trực tiếp giữa các clients sử dụng **mã hóa E2E thực sự** - server KHÔNG THỂ đọc được nội dung:
 
 ```
 ┌────────┐                    ┌────────┐                    ┌────────┐
 │Client A│                    │ Server │                    │Client B│
 └───┬────┘                    └───┬────┘                    └───┬────┘
     │                             │                             │
-    │  Encrypt(msg, KeyA-Server)  │                             │
-    │────────────────────────────>│                             │
+    │ ═══ 1. Peer Key Exchange ═══│═════════════════════════════│
+    │  PeerKeyExchange(PubKey_A)  │                             │
+    │────────────────────────────>│ ─────(forward)──────────────>│
+    │                             │<───(PeerKeyExchangeResp)────│
+    │<────────────────────────────│                             │
     │                             │                             │
-    │                        Decrypt với KeyA-Server            │
-    │                        Đọc nội dung + recipient           │
-    │                        Encrypt với KeyB-Server            │
+    │ SharedSecret_AB = A × B                   SharedSecret_AB = B × A
     │                             │                             │
-    │                             │  Encrypt(msg, KeyB-Server)  │
-    │                             │────────────────────────────>│
-    │                             │                             │
+    │ ═══ 2. E2E Encrypted Chat ══│═════════════════════════════│
+    │  Encrypt(msg, Key_AB)       │                             │
+    │────────────────────────────>│ ─────(forward ONLY)─────────>│
+    │                             │ ❌ Server KHÔNG THỂ đọc!    │ Decrypt(Key_AB)
 ```
 
-**Lưu ý**: Server có thể đọc nội dung tin nhắn (hub-and-spoke model). Để có E2E encryption thực sự giữa clients, cần implement client-to-client key exchange.
+> **Bảo mật E2E**: Server **KHÔNG THỂ** đọc nội dung tin nhắn trực tiếp. Tin nhắn được mã hóa trực tiếp giữa các clients với shared secret riêng.
 
 ## Luồng hoạt động
 
@@ -295,6 +299,8 @@ dotnet run
 | `System` | Thông báo hệ thống |
 | `UserList` | Danh sách users online |
 | `Error` | Thông báo lỗi |
+| `PeerKeyExchange` | Trao đổi khóa E2E giữa clients |
+| `PeerKeyExchangeResponse` | Phản hồi khóa E2E |
 
 ## Tài liệu
 

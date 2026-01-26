@@ -79,6 +79,10 @@ public class ClientHandler : IDisposable
             case MessageType.KeyExchange:
                 await HandleKeyExchangeAsync(message);
                 break;
+            case MessageType.PeerKeyExchange:
+            case MessageType.PeerKeyExchangeResponse:
+                await ForwardPeerKeyExchangeAsync(message);
+                break;
             case MessageType.Encrypted:
                 await HandleEncryptedMessageAsync(message);
                 break;
@@ -142,6 +146,36 @@ public class ClientHandler : IDisposable
             // Broadcast đến tất cả clients (hành vi hiện tại để tương thích ngược)
             await BroadcastMessageAsync(encryptedMessage);
         }
+    }
+    
+    /// <summary>
+    /// Chuyển tiếp tin nhắn peer key exchange đến người nhận
+    /// Server CHỈ chuyển tiếp, KHÔNG đọc hay xử lý nội dung
+    /// Bảo mật: Cho phép clients thiết lập E2E session trực tiếp
+    /// </summary>
+    private async Task ForwardPeerKeyExchangeAsync(Message message)
+    {
+        var recipientName = message.RecipientName;
+        
+        if (string.IsNullOrEmpty(recipientName))
+        {
+            await SendErrorAsync("Peer key exchange cần có người nhận");
+            return;
+        }
+        
+        var recipient = _manager.GetClientByUsername(recipientName);
+        
+        if (recipient == null)
+        {
+            Console.WriteLine($"[SERVER] Peer key exchange: User '{recipientName}' không online");
+            await SendErrorAsync($"User '{recipientName}' không online");
+            return;
+        }
+        
+        Console.WriteLine($"[SERVER] Chuyển tiếp {message.Type} từ {message.SenderName} đến {recipientName}");
+        
+        // Chuyển tiếp trực tiếp, không giải mã hay sửa đổi
+        await recipient.SendMessageAsync(message);
     }
     
     /// <summary>

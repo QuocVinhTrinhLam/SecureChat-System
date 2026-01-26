@@ -54,5 +54,18 @@ public enum MessageType
     /// Danh sách người dùng online
     /// Server gửi khi có người join/leave để cập nhật danh sách cho clients
     /// </summary>
-    UserList = 7
+    UserList = 7,
+    
+    /// <summary>
+    /// Yêu cầu trao đổi khóa trực tiếp giữa hai clients (E2E)
+    /// Chứa public key của người gửi, server chỉ chuyển tiếp không đọc được
+    /// Bảo mật: Cho phép thiết lập shared secret giữa clients mà server không biết
+    /// </summary>
+    PeerKeyExchange = 8,
+    
+    /// <summary>
+    /// Phản hồi trao đổi khóa từ peer
+    /// Chứa public key của người nhận để hoàn tất ECDH giữa clients
+    /// </summary>
+    PeerKeyExchangeResponse = 9
 }

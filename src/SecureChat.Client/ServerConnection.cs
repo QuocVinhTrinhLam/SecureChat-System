@@ -21,9 +21,12 @@ public sealed class ServerConnection : IDisposable
     private readonly ILogger _logger;
     private readonly IMessageSerializer _serializer;
     private readonly SecureSession _session;
+    private readonly PeerSessionManager _peerManager;
     private TcpClient? _client;
     private NetworkStream? _stream;
     private bool _disposed;
+    private string _userId = string.Empty;
+    private string _userName = string.Empty;
     
     /// <summary>
     /// Kiểm tra phiên bảo mật đã được thiết lập chưa
@@ -45,6 +48,7 @@ public sealed class ServerConnection : IDisposable
         _logger = logger;
         _serializer = new JsonMessageSerializer();
         _session = new SecureSession();
+        _peerManager = new PeerSessionManager();
     }
     
     /// <summary>
@@ -85,6 +89,8 @@ public sealed class ServerConnection : IDisposable
     /// <param name="cancellationToken">Token hủy</param>
     public async Task PerformKeyExchangeAsync(string userId, string userName, CancellationToken cancellationToken)
     {
+        _userId = userId;
+        _userName = userName;
         _logger.Info("Đang thực hiện trao đổi khóa với server...");
         
         // Gửi khóa công khai của chúng ta đến server
@@ -147,18 +153,15 @@ public sealed class ServerConnection : IDisposable
                     break;
                 }
                 
-                // Nếu được mã hóa và phiên đã thiết lập, giải mã
-                if (message.Type == MessageType.Encrypted && _session.IsEstablished)
+                // Xử lý tin nhắn peer key exchange
+                if (message.Type == MessageType.PeerKeyExchange || message.Type == MessageType.PeerKeyExchangeResponse)
                 {
-                    try
-                    {
-                        var decrypted = await _session.DecryptMessageAsync(message);
-                        MessageReceived?.Invoke(this, decrypted);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error("Lỗi giải mã: {0}", ex.Message);
-                    }
+                    await HandlePeerKeyExchangeAsync(message, cancellationToken);
+                }
+                // Nếu được mã hóa và phiên đã thiết lập, giải mã
+                else if (message.Type == MessageType.Encrypted)
+                {
+                    await HandleEncryptedMessageAsync(message);
                 }
                 else
                 {
@@ -254,9 +257,16 @@ public sealed class ServerConnection : IDisposable
     /// </summary>
     public async Task SendMessageAsync(Message message, CancellationToken cancellationToken)
     {
+        // Tin nhắn trực tiếp - sử dụng E2E encryption
+        if (!string.IsNullOrEmpty(message.RecipientName) && message.Type == MessageType.Text)
+        {
+            await SendDirectMessageE2EAsync(message, cancellationToken);
+            return;
+        }
+        
         if (_session.IsEstablished && message.Type == MessageType.Text)
         {
-            // Mã hóa tin nhắn text khi phiên đã thiết lập
+            // Mã hóa tin nhắn broadcast với server session
             var encrypted = await _session.EncryptMessageAsync(message);
             await SendRawMessageAsync(encrypted, cancellationToken);
         }
@@ -264,6 +274,106 @@ public sealed class ServerConnection : IDisposable
         {
             await SendRawMessageAsync(message, cancellationToken);
         }
+    }
+    
+    /// <summary>
+    /// Gửi tin nhắn trực tiếp với mã hóa E2E
+    /// </summary>
+    private async Task SendDirectMessageE2EAsync(Message message, CancellationToken cancellationToken)
+    {
+        var recipientName = message.RecipientName!;
+        
+        // Kiểm tra và thiết lập phiên E2E nếu chưa có
+        if (!_peerManager.HasSessionWith(recipientName))
+        {
+            _logger.Security("Đang thiết lập phiên E2E với {0}...", recipientName);
+            
+            // Khởi tạo trao đổi khóa với peer
+            var keyExchangeMsg = await _peerManager.InitiatePeerSessionAsync(
+                recipientName, recipientName, _userId, _userName);
+            
+            // Gửi yêu cầu trao đổi khóa qua server
+            await SendRawMessageAsync(keyExchangeMsg, cancellationToken);
+            
+            // Chờ phản hồi từ peer
+            try
+            {
+                await _peerManager.WaitForKeyExchangeAsync(recipientName, 10000);
+                _logger.Security("Phiên E2E với {0} đã thiết lập!", recipientName);
+            }
+            catch (TimeoutException)
+            {
+                _logger.Error("Không thể thiết lập phiên E2E với {0}. User có thể offline.", recipientName);
+                return;
+            }
+        }
+        
+        // Mã hóa tin nhắn với khóa E2E
+        var encrypted = await _peerManager.EncryptForPeerAsync(message, recipientName);
+        await SendRawMessageAsync(encrypted, cancellationToken);
+    }
+    
+    /// <summary>
+    /// Xử lý tin nhắn peer key exchange
+    /// </summary>
+    private async Task HandlePeerKeyExchangeAsync(Message message, CancellationToken cancellationToken)
+    {
+        _logger.Security("Nhận {0} từ {1}", message.Type, message.SenderName);
+        
+        // Xử lý và lấy phản hồi (nếu có)
+        var response = await _peerManager.ProcessPeerKeyExchangeAsync(message, _userId, _userName);
+        
+        if (response != null)
+        {
+            // Gửi phản hồi public key về cho peer qua server
+            await SendRawMessageAsync(response, cancellationToken);
+            _logger.Security("Phiên E2E với {0} đã thiết lập!", message.SenderName);
+        }
+    }
+    
+    /// <summary>
+    /// Xử lý tin nhắn mã hóa - thử giải mã với peer session hoặc server session
+    /// </summary>
+    private async Task HandleEncryptedMessageAsync(Message encryptedMessage)
+    {
+        try
+        {
+            Message decrypted;
+            
+            // Thử giải mã với peer session (E2E) nếu có sender
+            var senderId = encryptedMessage.SenderId;
+            var senderName = encryptedMessage.SenderName;
+            
+            if (!string.IsNullOrEmpty(senderName) && _peerManager.HasSessionWith(senderName))
+            {
+                decrypted = await _peerManager.DecryptFromPeerAsync(encryptedMessage, senderName);
+                _logger.Debug("Giải mã E2E từ {0}", senderName);
+            }
+            else if (_session.IsEstablished)
+            {
+                // Fallback: giải mã với server session
+                decrypted = await _session.DecryptMessageAsync(encryptedMessage);
+            }
+            else
+            {
+                _logger.Warning("Không thể giải mã tin nhắn - không có session phù hợp");
+                return;
+            }
+            
+            MessageReceived?.Invoke(this, decrypted);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Lỗi giải mã: {0}", ex.Message);
+        }
+    }
+    
+    /// <summary>
+    /// Kiểm tra đã có phiên E2E với peer chưa
+    /// </summary>
+    public bool HasE2ESessionWith(string peerName)
+    {
+        return _peerManager.HasSessionWith(peerName);
     }
     
     /// <summary>
@@ -298,9 +408,11 @@ public sealed class ServerConnection : IDisposable
     {
         if (_disposed) return;
         
+        _peerManager.Dispose();
         _session.Dispose();
         _stream?.Dispose();
         _client?.Dispose();
         _disposed = true;
     }
 }
+
