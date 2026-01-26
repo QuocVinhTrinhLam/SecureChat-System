@@ -211,8 +211,11 @@ public class ClientHandler : IDisposable
             var reEncrypted = await recipient.EncryptForClientAsync(decrypted);
             await recipient.SendMessageAsync(reEncrypted);
             
-            // Phản hồi lại cho người gửi (đã được mã hóa cho người gửi)
-            await SendMessageAsync(encryptedMessage);
+            // Echo lại cho người gửi (mã hóa lại với khóa của người gửi)
+            var senderEcho = await EncryptForClientAsync(decrypted);
+            await SendMessageAsync(senderEcho);
+            
+            Console.WriteLine($"[SERVER] Đã echo tin nhắn direct về cho {decrypted.SenderName}");
         }
         catch (Exception ex)
         {

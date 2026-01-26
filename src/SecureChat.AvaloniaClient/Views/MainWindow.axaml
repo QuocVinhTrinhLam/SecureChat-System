@@ -1,0 +1,272 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SecureChat.AvaloniaClient.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
+        x:Class="SecureChat.AvaloniaClient.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="SecureChat - Avalonia UI Client"
+        Width="1200" Height="700"
+        Background="#1E1E1E">
+
+    <Design.DataContext>
+        <vm:MainViewModel/>
+    </Design.DataContext>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <!-- Connection Panel -->
+            <RowDefinition Height="Auto"/>
+            <!-- Main Content -->
+            <RowDefinition Height="*"/>
+            <!-- Message Input -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <Grid.ColumnDefinitions>
+            <!-- Chat Area -->
+            <ColumnDefinition Width="2*"/>
+            <!-- Security Panel -->
+            <ColumnDefinition Width="*" MinWidth="300"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Connection Panel (Top) -->
+        <Border Grid.Row="0" Grid.ColumnSpan="2" 
+                Background="#2D2D30" 
+                CornerRadius="5" 
+                Padding="10" 
+                Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="Server IP:" VerticalAlignment="Center" Foreground="White"/>
+                <TextBox Text="{Binding ServerIp}" 
+                         Width="150" 
+                         Watermark="127.0.0.1"
+                         IsEnabled="{Binding !IsConnected}"/>
+                
+                <TextBlock Text="Port:" VerticalAlignment="Center" Foreground="White"/>
+                <TextBox Text="{Binding Port}" 
+                         Width="80" 
+                         Watermark="9000"
+                         IsEnabled="{Binding !IsConnected}"/>
+                
+                <TextBlock Text="Username:" VerticalAlignment="Center" Foreground="White"/>
+                <TextBox Text="{Binding Username}" 
+                         Width="150" 
+                         Watermark="Your name"
+                         IsEnabled="{Binding !IsConnected}"/>
+                
+                <Button Content="Connect" 
+                        Command="{Binding ConnectCommand}"
+                        Background="#0E639C"
+                        Foreground="White"
+                        Padding="15,5"/>
+                
+                <Button Content="Disconnect" 
+                        Command="{Binding DisconnectCommand}"
+                        Background="#C50F1F"
+                        Foreground="White"
+                        Padding="15,5"/>
+                
+                <Border Background="#3E3E42" 
+                        CornerRadius="3" 
+                        Padding="10,5"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StatusText}" 
+                               Foreground="#4EC9B0"
+                               FontWeight="Bold"/>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- Chat Area (Center Left) -->
+        <Border Grid.Row="1" Grid.Column="0" 
+                Background="#252526" 
+                CornerRadius="5" 
+                Padding="10"
+                Margin="0,0,5,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Grid.Row="0" 
+                           Text="Chat Messages" 
+                           FontSize="16" 
+                           FontWeight="Bold" 
+                           Foreground="White"
+                           Margin="0,0,0,10"/>
+                
+                <ScrollViewer x:Name="ChatScrollViewer"
+                              Grid.Row="1" 
+                              VerticalScrollBarVisibility="Auto"
+                              Background="#1E1E1E">
+                    <ListBox ItemsSource="{Binding Messages}"
+                             Background="Transparent"
+                             BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayText}" 
+                                           Foreground="{Binding MessageColor}"
+                                           TextWrapping="Wrap"
+                                           Margin="5,2"
+                                           FontFamily="Consolas, Courier New"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerTheme>
+                            <ControlTheme TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Padding" Value="0"/>
+                            </ControlTheme>
+                        </ListBox.ItemContainerTheme>
+                    </ListBox>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Security/Debug Panel (Right) -->
+        <Border Grid.Row="1" Grid.Column="1" 
+                Background="#252526" 
+                CornerRadius="5" 
+                Padding="10"
+                Margin="5,0,0,10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="10" DataContext="{Binding SecurityInfo}">
+                    <TextBlock Text="🔒 Security Information" 
+                               FontSize="16" 
+                               FontWeight="Bold" 
+                               Foreground="#4EC9B0"/>
+                    
+                    <Separator Background="#3E3E42"/>
+                    
+                    <!-- Key Exchange Info -->
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Key Exchange:" 
+                                   FontWeight="Bold" 
+                                   Foreground="#DCDCAA"/>
+                        <TextBox Text="{Binding KeyExchangeInfo}" 
+                                 IsReadOnly="True"
+                                 Background="#1E1E1E"
+                                 Foreground="#CE9178"
+                                 BorderThickness="1"
+                                 BorderBrush="#3E3E42"/>
+                    </StackPanel>
+                    
+                    <!-- Algorithm -->
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Encryption Algorithm:" 
+                                   FontWeight="Bold" 
+                                   Foreground="#DCDCAA"/>
+                        <TextBox Text="{Binding Algorithm}" 
+                                 IsReadOnly="True"
+                                 Background="#1E1E1E"
+                                 Foreground="#CE9178"
+                                 BorderThickness="1"
+                                 BorderBrush="#3E3E42"/>
+                    </StackPanel>
+                    
+                    <Separator Background="#3E3E42"/>
+                    
+                    <!-- Plaintext Message -->
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Plaintext Message:" 
+                                   FontWeight="Bold" 
+                                   Foreground="#DCDCAA"/>
+                        <TextBox Text="{Binding PlaintextMessage}" 
+                                 IsReadOnly="True"
+                                 Background="#1E1E1E"
+                                 Foreground="#9CDCFE"
+                                 TextWrapping="Wrap"
+                                 MinHeight="60"
+                                 BorderThickness="1"
+                                 BorderBrush="#3E3E42"/>
+                    </StackPanel>
+                    
+                    <!-- Encrypted Message -->
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Encrypted (Base64):" 
+                                   FontWeight="Bold" 
+                                   Foreground="#DCDCAA"/>
+                        <TextBox Text="{Binding EncryptedMessage}" 
+                                 IsReadOnly="True"
+                                 Background="#1E1E1E"
+                                 Foreground="#D16969"
+                                 TextWrapping="Wrap"
+                                 MinHeight="60"
+                                 FontFamily="Consolas"
+                                 FontSize="10"
+                                 BorderThickness="1"
+                                 BorderBrush="#3E3E42"/>
+                    </StackPanel>
+                    
+                    <!-- IV -->
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="IV (Initialization Vector):" 
+                                   FontWeight="Bold" 
+                                   Foreground="#DCDCAA"/>
+                        <TextBox Text="{Binding Iv}" 
+                                 IsReadOnly="True"
+                                 Background="#1E1E1E"
+                                 Foreground="#B5CEA8"
+                                 FontFamily="Consolas"
+                                 FontSize="10"
+                                 BorderThickness="1"
+                                 BorderBrush="#3E3E42"/>
+                    </StackPanel>
+                    
+                    <!-- HMAC -->
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="HMAC-SHA256:" 
+                                   FontWeight="Bold" 
+                                   Foreground="#DCDCAA"/>
+                        <TextBox Text="{Binding Hmac}" 
+                                 IsReadOnly="True"
+                                 Background="#1E1E1E"
+                                 Foreground="#B5CEA8"
+                                 FontFamily="Consolas"
+                                 FontSize="10"
+                                 BorderThickness="1"
+                                 BorderBrush="#3E3E42"/>
+                    </StackPanel>
+                    
+                    <Separator Background="#3E3E42"/>
+                    
+                    <TextBlock Text="💡 Tip: Gõ @username để gửi tin nhắn riêng" 
+                               Foreground="#6A9955"
+                               FontStyle="Italic"
+                               TextWrapping="Wrap"
+                               FontSize="11"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Message Input (Bottom) -->
+        <Border Grid.Row="2" Grid.ColumnSpan="2" 
+                Background="#2D2D30" 
+                CornerRadius="5" 
+                Padding="10">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" 
+                        Content="Send" 
+                        Command="{Binding SendMessageCommand}"
+                        Background="#0E639C"
+                        Foreground="White"
+                        Padding="20,8"
+                        Margin="10,0,0,0"
+                        FontWeight="Bold"/>
+                
+                <TextBox Text="{Binding MessageInput}" 
+                         Watermark="Type your message here... (Use @username for direct messages)"
+                         Background="#1E1E1E"
+                         Foreground="White"
+                         Padding="10"
+                         FontSize="14">
+                    <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding SendMessageCommand}"/>
+                    </TextBox.KeyBindings>
+                </TextBox>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>
