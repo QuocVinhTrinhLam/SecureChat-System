@@ -264,6 +264,15 @@ public sealed class ServerConnection : IDisposable
             return;
         }
         
+        // File transfer messages - cần mã hóa với server session
+        if (_session.IsEstablished && IsFileTransferMessage(message.Type))
+        {
+            // File transfer luôn là direct message, cần mã hóa
+            var encrypted = await _session.EncryptMessageAsync(message);
+            await SendRawMessageAsync(encrypted, cancellationToken);
+            return;
+        }
+        
         if (_session.IsEstablished && message.Type == MessageType.Text)
         {
             // Mã hóa tin nhắn broadcast với server session
@@ -274,6 +283,16 @@ public sealed class ServerConnection : IDisposable
         {
             await SendRawMessageAsync(message, cancellationToken);
         }
+    }
+    
+    /// <summary>
+    /// Kiểm tra tin nhắn có phải file transfer không
+    /// </summary>
+    private static bool IsFileTransferMessage(MessageType type)
+    {
+        return type == MessageType.File || 
+               type == MessageType.FileChunk || 
+               type == MessageType.FileComplete;
     }
     
     /// <summary>

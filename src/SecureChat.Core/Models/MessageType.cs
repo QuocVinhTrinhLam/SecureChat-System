@@ -67,5 +67,25 @@ public enum MessageType
     /// Phản hồi trao đổi khóa từ peer
     /// Chứa public key của người nhận để hoàn tất ECDH giữa clients
     /// </summary>
-    PeerKeyExchangeResponse = 9
+    PeerKeyExchangeResponse = 9,
+    
+    /// <summary>
+    /// Tin nhắn metadata file - gửi trước khi transfer
+    /// Chứa thông tin: tên file, kích thước, hash, số chunks
+    /// Bảo mật: Metadata được mã hóa, file được chia chunks và mã hóa riêng
+    /// </summary>
+    File = 10,
+    
+    /// <summary>
+    /// Chunk dữ liệu file đã mã hóa
+    /// Mỗi chunk tối đa 64KB, được mã hóa AES-256-GCM riêng biệt
+    /// Chứa: FileId, ChunkIndex, Data (encrypted)
+    /// </summary>
+    FileChunk = 11,
+    
+    /// <summary>
+    /// Xác nhận hoàn tất transfer file
+    /// Gửi sau khi tất cả chunks đã được nhận và verify hash
+    /// </summary>
+    FileComplete = 12
 }

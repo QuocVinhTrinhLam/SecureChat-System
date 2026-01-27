@@ -122,6 +122,20 @@ public sealed class Message
     public string? RecipientName { get; set; }
     
     /// <summary>
+    /// Metadata của file cho tin nhắn loại File
+    /// Chứa thông tin: tên, kích thước, hash, số chunks
+    /// </summary>
+    [JsonPropertyName("fileMetadata")]
+    public FileMetadata? FileMetadata { get; set; }
+    
+    /// <summary>
+    /// Dữ liệu chunk cho tin nhắn loại FileChunk
+    /// Chứa: fileId, chunkIndex, data (encrypted base64)
+    /// </summary>
+    [JsonPropertyName("fileChunkData")]
+    public FileChunkData? FileChunkData { get; set; }
+    
+    /// <summary>
     /// Tạo tin nhắn text đơn giản
     /// </summary>
     public static Message CreateTextMessage(string senderId, string senderName, string content)
@@ -209,5 +223,81 @@ public sealed class Message
             SenderName = "Hệ thống",
             Content = string.Join(",", usernames)
         };
+    }
+    
+    /// <summary>
+    /// Tạo tin nhắn metadata file - gửi trước khi bắt đầu transfer
+    /// </summary>
+    public static Message CreateFileMessage(
+        string senderId, string senderName,
+        string recipientId, string recipientName,
+        FileMetadata fileMetadata)
+    {
+        return new Message
+        {
+            Type = MessageType.File,
+            SenderId = senderId,
+            SenderName = senderName,
+            RecipientId = recipientId,
+            RecipientName = recipientName,
+            FileMetadata = fileMetadata,
+            Content = $"[FILE] {fileMetadata.FileName} ({FormatFileSize(fileMetadata.FileSize)})"
+        };
+    }
+    
+    /// <summary>
+    /// Tạo tin nhắn chunk file
+    /// </summary>
+    public static Message CreateFileChunkMessage(
+        string senderId, string senderName,
+        string recipientId, string recipientName,
+        FileChunkData chunkData)
+    {
+        return new Message
+        {
+            Type = MessageType.FileChunk,
+            SenderId = senderId,
+            SenderName = senderName,
+            RecipientId = recipientId,
+            RecipientName = recipientName,
+            FileChunkData = chunkData,
+            Content = $"Chunk {chunkData.ChunkIndex + 1}/{chunkData.TotalChunks}"
+        };
+    }
+    
+    /// <summary>
+    /// Tạo tin nhắn xác nhận hoàn tất transfer
+    /// </summary>
+    public static Message CreateFileCompleteMessage(
+        string senderId, string senderName,
+        string recipientId, string recipientName,
+        string fileId, string fileName)
+    {
+        return new Message
+        {
+            Type = MessageType.FileComplete,
+            SenderId = senderId,
+            SenderName = senderName,
+            RecipientId = recipientId,
+            RecipientName = recipientName,
+            Content = $"File {fileName} đã được nhận hoàn tất",
+            FileMetadata = new FileMetadata { FileId = fileId, FileName = fileName }
+        };
+    }
+    
+    /// <summary>
+    /// Format kích thước file cho hiển thị
+    /// </summary>
+    private static string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
     }
 }

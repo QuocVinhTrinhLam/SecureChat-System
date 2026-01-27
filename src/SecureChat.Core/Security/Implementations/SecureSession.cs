@@ -104,7 +104,9 @@ public sealed class SecureSession : IDisposable
             recipientId = message.RecipientId,
             recipientName = message.RecipientName,
             content = message.Content,
-            timestamp = message.Timestamp
+            timestamp = message.Timestamp,
+            fileMetadata = message.FileMetadata,
+            fileChunkData = message.FileChunkData
         });
         var (ciphertext, iv, tag) =
             await _encryption.EncryptAsync(plaintextJson, _encryptionKey!);
@@ -173,6 +175,20 @@ public sealed class SecureSession : IDisposable
         if (inner.TryGetProperty("recipientName", out var recipientNameProp) && recipientNameProp.ValueKind != JsonValueKind.Null)
             recipientName = recipientNameProp.GetString();
         
+        // Parse FileMetadata if present
+        FileMetadata? fileMetadata = null;
+        if (inner.TryGetProperty("fileMetadata", out var fileMetadataProp) && fileMetadataProp.ValueKind != JsonValueKind.Null)
+        {
+            fileMetadata = JsonSerializer.Deserialize<FileMetadata>(fileMetadataProp.GetRawText());
+        }
+        
+        // Parse FileChunkData if present
+        FileChunkData? fileChunkData = null;
+        if (inner.TryGetProperty("fileChunkData", out var fileChunkDataProp) && fileChunkDataProp.ValueKind != JsonValueKind.Null)
+        {
+            fileChunkData = JsonSerializer.Deserialize<FileChunkData>(fileChunkDataProp.GetRawText());
+        }
+        
         return new Message
         {
             Id = encryptedMessage.Id,
@@ -182,7 +198,9 @@ public sealed class SecureSession : IDisposable
             RecipientId = recipientId,
             RecipientName = recipientName,
             Content = inner.GetProperty("content").GetString() ?? string.Empty,
-            Timestamp = inner.GetProperty("timestamp").GetDateTime()
+            Timestamp = inner.GetProperty("timestamp").GetDateTime(),
+            FileMetadata = fileMetadata,
+            FileChunkData = fileChunkData
         };
     }
     /// <summary>

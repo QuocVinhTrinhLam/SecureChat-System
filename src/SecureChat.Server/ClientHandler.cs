@@ -96,6 +96,11 @@ public class ClientHandler : IDisposable
                 // Client rời khỏi một cách hợp lệ
                 Console.WriteLine($"[SERVER] Client {ClientEndpoint} đã rời khỏi phòng chat");
                 break;
+            case MessageType.File:
+            case MessageType.FileChunk:
+            case MessageType.FileComplete:
+                await HandleFileTransferAsync(message);
+                break;
             default:
                 await SendErrorAsync("Loại tin nhắn không được hỗ trợ");
                 break;
@@ -176,6 +181,71 @@ public class ClientHandler : IDisposable
         
         // Chuyển tiếp trực tiếp, không giải mã hay sửa đổi
         await recipient.SendMessageAsync(message);
+    }
+    
+    /// <summary>
+    /// Xử lý tin nhắn liên quan đến file transfer
+    /// Server giải mã, rồi mã hóa lại với khóa của người nhận
+    /// </summary>
+    private async Task HandleFileTransferAsync(Message message)
+    {
+        if (!_session.IsEstablished)
+        {
+            await SendErrorAsync("Phiên bảo mật chưa được thiết lập. Vui lòng thực hiện trao đổi khóa trước.");
+            return;
+        }
+        
+        var recipientName = message.RecipientName;
+        if (string.IsNullOrEmpty(recipientName))
+        {
+            await SendErrorAsync("File transfer cần có người nhận cụ thể.");
+            return;
+        }
+        
+        var recipient = _manager.GetClientByUsername(recipientName);
+        if (recipient == null)
+        {
+            Console.WriteLine($"[SERVER] File transfer: User '{recipientName}' không online");
+            await SendErrorAsync($"User '{recipientName}' không online");
+            return;
+        }
+        
+        if (!recipient.IsSecureSessionEstablished)
+        {
+            await SendErrorAsync($"User '{recipientName}' chưa thiết lập phiên bảo mật");
+            return;
+        }
+        
+        try
+        {
+            // Giải mã tin nhắn file sử dụng phiên của người gửi
+            var decrypted = await _session.DecryptMessageAsync(message);
+            
+            var typeStr = message.Type switch
+            {
+                MessageType.File => "metadata",
+                MessageType.FileChunk => $"chunk {decrypted.FileChunkData?.ChunkIndex ?? 0}",
+                MessageType.FileComplete => "complete",
+                _ => "unknown"
+            };
+            Console.WriteLine($"[SERVER] Routing file {typeStr} từ {decrypted.SenderName} đến {recipientName}");
+            
+            // Mã hóa lại với khóa phiên của người nhận
+            var reEncrypted = await recipient.EncryptForClientAsync(decrypted);
+            await recipient.SendMessageAsync(reEncrypted);
+            
+            // Chỉ echo lại cho người gửi với File metadata (không echo chunks để tránh spam)
+            if (message.Type == MessageType.File)
+            {
+                var senderEcho = await EncryptForClientAsync(decrypted);
+                await SendMessageAsync(senderEcho);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SERVER] Lỗi routing file transfer: {ex.Message}");
+            await SendErrorAsync($"Không thể gửi file đến {recipientName}");
+        }
     }
     
     /// <summary>

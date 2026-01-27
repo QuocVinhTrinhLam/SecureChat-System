@@ -24,6 +24,11 @@ public class ChatService : IDisposable
     private string _userName = string.Empty;
     
     /// <summary>
+    /// Username của người dùng hiện tại
+    /// </summary>
+    public string UserName => _userName;
+    
+    /// <summary>
     /// Event được raise khi nhận tin nhắn từ server (trên UI thread)
     /// </summary>
     public event EventHandler<Message>? MessageReceived;
@@ -192,6 +197,62 @@ public class ChatService : IDisposable
             RaiseError($"Lỗi gửi tin nhắn: {ex.Message}");
             throw;
         }
+    }
+    
+    /// <summary>
+    /// Gửi file metadata để bắt đầu transfer
+    /// </summary>
+    public async Task SendFileMetadataAsync(FileMetadata metadata, string recipientName)
+    {
+        if (!IsConnected || _connection == null)
+        {
+            throw new InvalidOperationException("Chưa kết nối");
+        }
+        
+        var message = Message.CreateFileMessage(
+            _userId, _userName,
+            recipientName, recipientName,
+            metadata);
+        
+        Console.WriteLine($"[ChatService] Sending file metadata: {metadata.FileName} to {recipientName}");
+        await _connection.SendMessageAsync(message, _cts?.Token ?? CancellationToken.None);
+    }
+    
+    /// <summary>
+    /// Gửi một chunk của file
+    /// </summary>
+    public async Task SendFileChunkAsync(FileChunkData chunkData, string recipientName)
+    {
+        if (!IsConnected || _connection == null)
+        {
+            throw new InvalidOperationException("Chưa kết nối");
+        }
+        
+        var message = Message.CreateFileChunkMessage(
+            _userId, _userName,
+            recipientName, recipientName,
+            chunkData);
+        
+        await _connection.SendMessageAsync(message, _cts?.Token ?? CancellationToken.None);
+    }
+    
+    /// <summary>
+    /// Gửi xác nhận hoàn tất transfer
+    /// </summary>
+    public async Task SendFileCompleteAsync(string fileId, string fileName, string recipientName)
+    {
+        if (!IsConnected || _connection == null)
+        {
+            throw new InvalidOperationException("Chưa kết nối");
+        }
+        
+        var message = Message.CreateFileCompleteMessage(
+            _userId, _userName,
+            recipientName, recipientName,
+            fileId, fileName);
+        
+        Console.WriteLine($"[ChatService] Sending file complete: {fileName} to {recipientName}");
+        await _connection.SendMessageAsync(message, _cts?.Token ?? CancellationToken.None);
     }
     
     /// <summary>

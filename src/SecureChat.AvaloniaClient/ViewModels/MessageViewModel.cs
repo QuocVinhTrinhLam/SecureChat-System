@@ -40,6 +40,8 @@ public partial class MessageViewModel : ViewModelBase
             MessageType.System => $"[Hệ thống]: {message.Content}",
             MessageType.Error => $"[Lỗi]: {message.Content}",
             MessageType.UserList => $"[Users online]: {message.Content}",
+            MessageType.File => FormatFileMessage(message, currentUserId),
+            MessageType.FileComplete => $"[Hệ thống]: {message.Content}",
             _ => message.Content
         };
     }
@@ -73,6 +75,41 @@ public partial class MessageViewModel : ViewModelBase
     }
     
     /// <summary>
+    /// Format file message
+    /// </summary>
+    private static string FormatFileMessage(Message message, string currentUserName)
+    {
+        var fileName = message.FileMetadata?.FileName ?? "unknown";
+        var fileSize = message.FileMetadata?.FileSize ?? 0;
+        var sizeStr = FormatFileSize(fileSize);
+        
+        if (string.Equals(message.SenderName, currentUserName, StringComparison.OrdinalIgnoreCase))
+        {
+            return $"[Bạn → {message.RecipientName}]: [FILE] {fileName} ({sizeStr})";
+        }
+        else
+        {
+            return $"[{message.SenderName} → Bạn]: [FILE] {fileName} ({sizeStr})";
+        }
+    }
+    
+    /// <summary>
+    /// Format file size
+    /// </summary>
+    private static string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+    
+    /// <summary>
     /// Lấy màu cho tin nhắn
     /// </summary>
     private static IBrush GetMessageColor(Message message, string currentUserId)
@@ -86,6 +123,8 @@ public partial class MessageViewModel : ViewModelBase
             MessageType.System => Brushes.DodgerBlue,
             MessageType.Error => Brushes.Red,
             MessageType.UserList => Brushes.Cyan,
+            MessageType.File => Brushes.Orange, // File message
+            MessageType.FileComplete => Brushes.LightGreen, // File complete
             _ => Brushes.White
         };
     }

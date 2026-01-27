@@ -24,6 +24,9 @@ public partial class MainWindow : Window
         {
             Console.WriteLine($"[MainWindow] DataContext is MainViewModel. Messages.Count: {viewModel.Messages.Count}");
             
+            // Set StorageProvider for file dialogs
+            viewModel.StorageProvider = StorageProvider;
+            
             // Subscribe to Messages collection changes
             viewModel.Messages.CollectionChanged += OnMessagesCollectionChanged;
             

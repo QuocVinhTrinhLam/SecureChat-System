@@ -20,7 +20,7 @@ public sealed class JsonMessageSerializer : IMessageSerializer
     /// Kích thước tin nhắn tối đa cho phép tính bằng bytes
     /// Bảo mật: Ngăn chặn tấn công làm cạn kiệt bộ nhớ từ tin nhắn quá lớn
     /// </summary>
-    public const int MaxMessageSize = 64 * 1024; // 64 KB
+    public const int MaxMessageSize = 512 * 1024; // 512 KB - đủ lớn cho file transfer chunks
     
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -117,7 +117,7 @@ public sealed class JsonMessageSerializer : IMessageSerializer
         }
         
         // Bảo mật: Xác thực độ dài content
-        const int MaxContentLength = 10_000; // Ký tự
+        const int MaxContentLength = 200_000; // Ký tự - tăng để hỗ trợ file chunks (Base64)
         if (message.Content?.Length > MaxContentLength)
         {
             throw new FormatException($"Nội dung tin nhắn vượt quá độ dài tối đa {MaxContentLength}");
