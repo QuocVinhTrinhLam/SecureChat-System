@@ -151,7 +151,7 @@ Tin nhắn trực tiếp giữa các clients sử dụng **mã hóa E2E thực s
     │                             │ ❌ Server KHÔNG THỂ đọc!    │ Decrypt(Key_AB)
 ```
 
-> **Bảo mật E2E**: Server **KHÔNG THỂ** đọc nội dung tin nhắn trực tiếp. Tin nhắn được mã hóa trực tiếp giữa các clients với shared secret riêng.
+> **Bảo mật E2E**: Server **KHÔNG THỂ** đọc nội dung tin nhắn trực tiếp. Tin nhắn được mã hóa với khóa chỉ có giữa 2 clients (shared secret từ peer key exchange).
 
 ## Luồng hoạt động
 
@@ -161,21 +161,29 @@ sequenceDiagram
     participant S as Server
     participant C2 as Client 2
 
-    Note over C1,S: 1. Kết nối và trao đổi khóa
+    Note over C1,S: 1. Kết nối và xác thực với Server
     C1->>S: TCP Connect
     S->>C1: Welcome Message
     C1->>S: KeyExchange (Public Key C1)
     S->>C1: KeyExchange (Public Key Server)
-    Note over C1,S: Session Key được tính từ ECDH
+    Note over C1,S: Session Key với Server (dùng cho control messages)
 
     Note over C2,S: 2. Client 2 kết nối
     C2->>S: TCP Connect + KeyExchange
     S->>C2: KeyExchange + UserList
 
-    Note over C1,C2: 3. Gửi tin nhắn mã hóa
-    C1->>S: Encrypted Message (@C2)
-    Note over S: Server giải mã với key C1,<br/>mã hóa lại với key C2
-    S->>C2: Re-encrypted Message
+    Note over C1,C2: 3. Thiết lập E2E Session giữa Clients
+    C1->>S: PeerKeyExchange (Public Key C1)
+    S->>C2: Forward PeerKeyExchange
+    C2->>S: PeerKeyExchangeResponse (Public Key C2)
+    S->>C1: Forward Response
+    Note over C1,C2: Shared Secret AB được tính từ ECDH (chỉ C1 và C2 biết)
+
+    Note over C1,C2: 4. Gửi tin nhắn E2E
+    C1->>S: Encrypted Message (Key_AB)
+    Note over S: Server CHỈ forward<br/>❌ Không thể giải mã
+    S->>C2: Forward Encrypted Message
+    C2->>C2: Decrypt với Key_AB
 ```
 
 ### Chi tiết luồng:

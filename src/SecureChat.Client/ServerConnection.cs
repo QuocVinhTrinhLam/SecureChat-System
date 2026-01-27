@@ -316,10 +316,10 @@ public sealed class ServerConnection : IDisposable
             // Gửi yêu cầu trao đổi khóa qua server
             await SendRawMessageAsync(keyExchangeMsg, cancellationToken);
             
-            // Chờ phản hồi từ peer với timeout ngắn (500ms)
+            // Chờ phản hồi từ peer với timeout (5 giây)
             try
             {
-                await _peerManager.WaitForKeyExchangeAsync(recipientName, 500);
+                await _peerManager.WaitForKeyExchangeAsync(recipientName, 5000);
                 Console.WriteLine($"[ServerConnection] E2E session established with {recipientName}!");
                 _logger.Security("Phiên E2E với {0} đã thiết lập!", recipientName);
             }
