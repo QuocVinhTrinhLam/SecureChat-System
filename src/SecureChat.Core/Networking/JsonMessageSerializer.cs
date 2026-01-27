@@ -117,7 +117,8 @@ public sealed class JsonMessageSerializer : IMessageSerializer
         }
         
         // Bảo mật: Xác thực độ dài content
-        const int MaxContentLength = 200_000; // Ký tự - tăng để hỗ trợ file chunks (Base64)
+        // 500,000 ký tự đủ cho file chunks 64KB sau khi Base64 encode + mã hóa
+        const int MaxContentLength = 500_000;
         if (message.Content?.Length > MaxContentLength)
         {
             throw new FormatException($"Nội dung tin nhắn vượt quá độ dài tối đa {MaxContentLength}");

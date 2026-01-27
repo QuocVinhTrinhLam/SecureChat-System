@@ -253,30 +253,40 @@ public partial class MainViewModel : ViewModelBase
     {
         try
         {
+            Console.WriteLine($"[SendFileAsync] Starting file transfer: {filePath} to {recipientName}");
             IsTransferring = true;
             TransferStatusText = $"Đang chuẩn bị gửi {Path.GetFileName(filePath)}...";
             TransferProgress = 0;
             
             // Chuẩn bị metadata
             var metadata = await _fileTransferService.PrepareFileForSendingAsync(filePath);
+            Console.WriteLine($"[SendFileAsync] Metadata prepared: FileId={metadata.FileId}, FileName={metadata.FileName}, TotalChunks={metadata.TotalChunks}");
             
             // Gửi file metadata message
             await _chatService.SendFileMetadataAsync(metadata, recipientName);
+            Console.WriteLine($"[SendFileAsync] Metadata sent successfully");
             TransferStatusText = $"Đang gửi {metadata.FileName}...";
             
             // Gửi từng chunk
+            int chunkCount = 0;
             await foreach (var chunk in _fileTransferService.ReadFileChunksAsync(filePath, metadata.FileId))
             {
+                Console.WriteLine($"[SendFileAsync] Sending chunk {chunk.ChunkIndex + 1}/{chunk.TotalChunks}");
                 await _chatService.SendFileChunkAsync(chunk, recipientName);
+                Console.WriteLine($"[SendFileAsync] Chunk {chunk.ChunkIndex + 1} sent successfully");
+                chunkCount++;
             }
+            Console.WriteLine($"[SendFileAsync] All {chunkCount} chunks sent");
             
             // Gửi complete message
             await _chatService.SendFileCompleteAsync(metadata.FileId, metadata.FileName, recipientName);
+            Console.WriteLine($"[SendFileAsync] Complete message sent");
             
             AddSystemMessage($"Đã gửi file {metadata.FileName} đến {recipientName}");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[SendFileAsync] ERROR: {ex}");
             AddSystemMessage($"Lỗi gửi file: {ex.Message}");
         }
         finally
@@ -304,15 +314,19 @@ public partial class MainViewModel : ViewModelBase
             
             if (message.Type == MessageType.File && message.FileMetadata != null && isRecipient)
             {
+                Console.WriteLine($"[MainViewModel] Received FILE metadata: {message.FileMetadata.FileName}, TotalChunks={message.FileMetadata.TotalChunks}");
                 _fileTransferService.StartReceiving(message.FileMetadata, message.SenderName);
                 IsTransferring = true;
                 TransferStatusText = $"Đang nhận {message.FileMetadata.FileName}...";
             }
             else if (message.Type == MessageType.FileChunk && message.FileChunkData != null && isRecipient)
             {
+                Console.WriteLine($"[MainViewModel] Received CHUNK: FileId={message.FileChunkData.FileId}, Index={message.FileChunkData.ChunkIndex}/{message.FileChunkData.TotalChunks}");
                 var isComplete = _fileTransferService.ReceiveChunk(message.FileChunkData);
+                Console.WriteLine($"[MainViewModel] Chunk processed, isComplete={isComplete}");
                 if (isComplete)
                 {
+                    Console.WriteLine($"[MainViewModel] All chunks received, saving file...");
                     // Auto-save to Downloads folder
                     var downloadsPath = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -324,10 +338,12 @@ public partial class MainViewModel : ViewModelBase
             }
             else if (message.Type == MessageType.FileChunk)
             {
+                Console.WriteLine($"[MainViewModel] Ignoring FileChunk for sender");
                 return; // Don't show chunk messages for sender either
             }
             else if (message.Type == MessageType.FileComplete && isRecipient)
             {
+                Console.WriteLine($"[MainViewModel] Received FILE COMPLETE");
                 IsTransferring = false;
                 TransferProgress = 0;
                 TransferStatusText = "";
