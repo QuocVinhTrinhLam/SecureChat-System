@@ -20,8 +20,8 @@ public sealed class JsonMessageSerializer : IMessageSerializer
     /// Kích thước tin nhắn tối đa cho phép tính bằng bytes
     /// Bảo mật: Ngăn chặn tấn công làm cạn kiệt bộ nhớ từ tin nhắn quá lớn
     /// </summary>
-    public const int MaxMessageSize = 512 * 1024; // 512 KB - đủ lớn cho file transfer chunks
-    
+    public const int MaxMessageSize = 2 * 1024 * 1024; // 2 MB - Tăng lên để hỗ trợ UTF-8 overhead và encoding
+
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -48,7 +48,7 @@ public sealed class JsonMessageSerializer : IMessageSerializer
         ValidateMessage(message);
         
         var json = JsonSerializer.Serialize(message, SerializerOptions);
-        var bytes = Encoding.Unicode.GetBytes(json);
+        var bytes = Encoding.UTF8.GetBytes(json); // FIX: Sử dụng UTF-8 thay vì Unicode để giảm kích thước (1 byte/char cho ASCII)
         
         // Bảo mật: Kiểm tra kích thước trước khi trả về
         if (bytes.Length > MaxMessageSize)
@@ -79,7 +79,7 @@ public sealed class JsonMessageSerializer : IMessageSerializer
         
         try
         {
-            var json = Encoding.Unicode.GetString(data);
+            var json = Encoding.UTF8.GetString(data); // FIX: Sử dụng UTF-8
             var message = JsonSerializer.Deserialize<Message>(json, SerializerOptions);
             
             if (message is null)
@@ -117,8 +117,8 @@ public sealed class JsonMessageSerializer : IMessageSerializer
         }
         
         // Bảo mật: Xác thực độ dài content
-        // 500,000 ký tự đủ cho file chunks 64KB sau khi Base64 encode + mã hóa
-        const int MaxContentLength = 500_000;
+        // 1,500,000 ký tự đủ cho payload lớn trong UTF-8
+        const int MaxContentLength = 1_500_000;
         if (message.Content?.Length > MaxContentLength)
         {
             throw new FormatException($"Nội dung tin nhắn vượt quá độ dài tối đa {MaxContentLength}");

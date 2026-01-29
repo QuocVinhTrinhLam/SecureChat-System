@@ -257,19 +257,15 @@ public sealed class ServerConnection : IDisposable
     /// </summary>
     public async Task SendMessageAsync(Message message, CancellationToken cancellationToken)
     {
-        // Tin nhắn trực tiếp - sử dụng E2E encryption
-        if (!string.IsNullOrEmpty(message.RecipientName) && message.Type == MessageType.Text)
+        // Tin nhắn trực tiếp HOẶC File transfer - sử dụng E2E encryption
+        if ((!string.IsNullOrEmpty(message.RecipientName) && message.Type == MessageType.Text) ||
+            IsFileTransferMessage(message.Type))
         {
-            await SendDirectMessageE2EAsync(message, cancellationToken);
-            return;
-        }
-        
-        // File transfer messages - cần mã hóa với server session
-        if (_session.IsEstablished && IsFileTransferMessage(message.Type))
-        {
-            // File transfer luôn là direct message, cần mã hóa
-            var encrypted = await _session.EncryptMessageAsync(message);
-            await SendRawMessageAsync(encrypted, cancellationToken);
+            // Với File Transfer: KHÔNG cho phép fallback (Server Blindness)
+            // Với Text: Cho phép fallback (backward compatibility/ux)
+            bool allowFallback = !IsFileTransferMessage(message.Type);
+            
+            await SendDirectMessageE2EAsync(message, allowFallback, cancellationToken);
             return;
         }
         
@@ -298,10 +294,10 @@ public sealed class ServerConnection : IDisposable
     /// <summary>
     /// Gửi tin nhắn trực tiếp với mã hóa E2E
     /// </summary>
-    private async Task SendDirectMessageE2EAsync(Message message, CancellationToken cancellationToken)
+    private async Task SendDirectMessageE2EAsync(Message message, bool allowFallback, CancellationToken cancellationToken)
     {
         var recipientName = message.RecipientName!;
-        Console.WriteLine($"[ServerConnection] SendDirectMessageE2E: to={recipientName}");
+        Console.WriteLine($"[ServerConnection] SendDirectMessageE2E: to={recipientName}, allowFallback={allowFallback}");
         
         // Kiểm tra và thiết lập phiên E2E nếu chưa có
         if (!_peerManager.HasSessionWith(recipientName))
@@ -325,7 +321,15 @@ public sealed class ServerConnection : IDisposable
             }
             catch (TimeoutException)
             {
-                Console.WriteLine($"[ServerConnection] E2E timeout, fallback to server encryption");
+                Console.WriteLine($"[ServerConnection] E2E timeout");
+                
+                if (!allowFallback)
+                {
+                    _logger.Error("Không thể gửi file: E2E session timeout. Server blind requirement prevents fallback.");
+                    throw new TimeoutException("Không thể thiết lập E2E session cho file transfer. Server không được phép nhìn thấy file.");
+                }
+
+                Console.WriteLine($"[ServerConnection] Fallback to server encryption");
                 _logger.Warning("E2E timeout, fallback to server encryption.");
                 
                 // Fallback to server encryption

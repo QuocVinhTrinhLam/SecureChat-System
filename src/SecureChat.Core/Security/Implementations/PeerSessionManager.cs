@@ -126,8 +126,16 @@ public sealed class PeerSessionManager : IDisposable
     {
         ThrowIfDisposed();
 
-        var peerId = keyExchange.SenderId;
+        // FIX: Sử dụng SenderName làm peerId vì hệ thống sử dụng Username để định danh peer trong UI và ServerConnection
+        // SenderId là GUID nhưng ServerConnection khởi tạo session bằng Username
+        var peerId = keyExchange.SenderName;
+        // var peerId = keyExchange.SenderId; // OLD code causing mismatch
         var peerName = keyExchange.SenderName;
+
+        if (string.IsNullOrEmpty(peerId))
+        {
+            throw new ArgumentException("SenderName không được để trống trong KeyExchange");
+        }
 
         if (keyExchange.Type == MessageType.PeerKeyExchange)
         {

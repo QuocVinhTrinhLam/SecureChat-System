@@ -44,7 +44,7 @@ namespace SecureChat.Core.Security.Implementations
         {
             byte[] keyBytes = Convert.FromBase64String(key);
             byte[] nonce = RandomNumberGenerator.GetBytes(NonceSize);
-            byte[] plaintextBytes = Encoding.Unicode.GetBytes(plaintext);
+            byte[] plaintextBytes = Encoding.UTF8.GetBytes(plaintext);
             byte[] ciphertext = new byte[plaintextBytes.Length];
             byte[] tag = new byte[TagSize];
             using var aes = new AesGcm(keyBytes, TagSize);
@@ -82,7 +82,7 @@ namespace SecureChat.Core.Security.Implementations
                 byte[] plaintext = new byte[cipherBytes.Length];
                 using var aes = new AesGcm(keyBytes, TagSize);
                 aes.Decrypt(nonce, cipherBytes, tagBytes, plaintext);
-                return Task.FromResult(Encoding.Unicode.GetString(plaintext));
+                return Task.FromResult(Encoding.UTF8.GetString(plaintext));
             }
             catch (Exception ex) when (
                 ex is FormatException ||

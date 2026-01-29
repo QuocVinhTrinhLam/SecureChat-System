@@ -253,6 +253,12 @@ public class ClientHandler : IDisposable
     /// Server giải mã với khóa của người gửi và mã hóa lại với khóa của người nhận
     /// Lưu ý: Để mã hóa E2E thật sự, clients cần trao đổi khóa trực tiếp
     /// </summary>
+    /// <summary>
+    /// Chuyển tiếp tin nhắn trực tiếp đến người nhận cụ thể
+    /// Hỗ trợ 2 chế độ:
+    /// 1. E2E (Blind Forward): Nếu KeyId không khớp Server Session, chuyển tiếp nguyên vẹn
+    /// 2. Relay (Fallback): Nếu KeyId khớp, giải mã và mã hóa lại (Server-in-the-Middle)
+    /// </summary>
     private async Task RouteDirectMessageAsync(Message encryptedMessage)
     {
         var recipientName = encryptedMessage.RecipientName!;
@@ -265,9 +271,23 @@ public class ClientHandler : IDisposable
             return;
         }
         
+        // FIX: Kiểm tra xem tin nhắn này có phải E2E không (không dành cho Server giải mã)
+        // Nếu KeyId trong metadata KHÁC KeyId của phiên Server-Client hiện tại, đó là tin nhắn E2E
+        var msgKeyId = encryptedMessage.SecurityMetadata?.KeyId;
+        var isE2EMessage = msgKeyId != _session.SessionId;
+
+        if (isE2EMessage)
+        {
+            Console.WriteLine($"[SERVER] Blind Forwarding E2E tin nhắn từ {encryptedMessage.SenderName} đến {recipientName} (KeyId mismatch)");
+            // Chế độ E2E: Forward nguyên vẹn, không giải mã
+            await recipient.SendMessageAsync(encryptedMessage);
+            return;
+        }
+
+        // Chế độ Relay (Fallback)
         if (!recipient.IsSecureSessionEstablished)
         {
-            await SendErrorAsync($"User '{recipientName}' chưa thiết lập phiên bảo mật");
+            await SendErrorAsync($"User '{recipientName}' chưa thiết lập phiên bảo mật (Server Relay)");
             return;
         }
         
@@ -275,21 +295,22 @@ public class ClientHandler : IDisposable
         {
             // Giải mã tin nhắn sử dụng phiên của người gửi
             var decrypted = await _session.DecryptMessageAsync(encryptedMessage);
-            Console.WriteLine($"[SERVER] Routing tin nhắn từ {decrypted.SenderName} đến {recipientName}");
+            Console.WriteLine($"[SERVER] Relaying (Fallback) tin nhắn từ {decrypted.SenderName} đến {recipientName}");
             
             // Mã hóa lại với khóa phiên của người nhận
             var reEncrypted = await recipient.EncryptForClientAsync(decrypted);
             await recipient.SendMessageAsync(reEncrypted);
             
             // Echo lại cho người gửi (mã hóa lại với khóa của người gửi)
+            // Lưu ý: Chỉ echo trong chế độ Relay. E2E client tự handle UI.
             var senderEcho = await EncryptForClientAsync(decrypted);
             await SendMessageAsync(senderEcho);
             
-            Console.WriteLine($"[SERVER] Đã echo tin nhắn direct về cho {decrypted.SenderName}");
+            Console.WriteLine($"[SERVER] Đã echo tin nhắn relay về cho {decrypted.SenderName}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SERVER] Lỗi routing tin nhắn: {ex.Message}");
+            Console.WriteLine($"[SERVER] Lỗi routing tin nhắn relay: {ex.Message}");
             await SendErrorAsync($"Không thể gửi tin nhắn đến {recipientName}");
         }
     }
