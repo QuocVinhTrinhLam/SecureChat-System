@@ -271,7 +271,7 @@ public class ClientHandler : IDisposable
             return;
         }
         
-        // FIX: Kiểm tra xem tin nhắn này có phải E2E không (không dành cho Server giải mã)
+        // Kiểm tra xem tin nhắn này có phải E2E không
         // Nếu KeyId trong metadata KHÁC KeyId của phiên Server-Client hiện tại, đó là tin nhắn E2E
         var msgKeyId = encryptedMessage.SecurityMetadata?.KeyId;
         var isE2EMessage = msgKeyId != _session.SessionId;

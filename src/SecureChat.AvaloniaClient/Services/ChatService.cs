@@ -162,7 +162,7 @@ public class ChatService : IDisposable
     /// </summary>
     /// <param name="content">Nội dung tin nhắn</param>
     /// <param name="recipientName">Tên người nhận (null = broadcast)</param>
-    public async Task SendMessageAsync(string content, string? recipientName = null)
+    public async Task<Message> SendMessageAsync(string content, string? recipientName = null)
     {
         if (!IsConnected || _connection == null)
         {
@@ -191,6 +191,8 @@ public class ChatService : IDisposable
             
             await _connection.SendMessageAsync(message, _cts?.Token ?? CancellationToken.None);
             Console.WriteLine($"[ChatService] Message sent successfully");
+            
+            return message;
         }
         catch (Exception ex)
         {

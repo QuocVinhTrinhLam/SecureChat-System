@@ -18,6 +18,7 @@ public partial class MessageViewModel : ViewModelBase
     [ObservableProperty]
     private IBrush _messageColor;
     
+    public string Id => _message.Id;
     public MessageType Type => _message.Type;
     
     public MessageViewModel(Message message, string currentUserId)

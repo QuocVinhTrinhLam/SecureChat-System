@@ -176,8 +176,24 @@ public partial class MainViewModel : ViewModelBase
                 }
             }
             
-            // Gửi tin nhắn - server sẽ echo lại để hiển thị
-            await _chatService.SendMessageAsync(content, recipientName);
+            // Gửi tin nhắn - server sẽ echo lại để hiển thị (với broadcast) hoặc không (với direct)
+            var sentMessage = await _chatService.SendMessageAsync(content, recipientName);
+            
+            // Luôn thêm tin nhắn vào UI ngay lập tức
+            // Duplicate check trong AddMessage sẽ xử lý trường hợp server echo lại broadcast
+            AddMessage(sentMessage);
+            
+            // Cập nhật security info nếu là tin nhắn mã hóa
+            if (!string.IsNullOrEmpty(recipientName) && sentMessage.SecurityMetadata != null)
+            {
+                SecurityInfo.UpdateFromEncryptedMessage(
+                    sentMessage.Content,
+                    sentMessage.Content, // Encrypted version (would need original)
+                    sentMessage.SecurityMetadata.InitializationVector,
+                    sentMessage.SecurityMetadata.Hmac
+                );
+            }
+            
             Console.WriteLine("[MainViewModel] SendMessageAsync completed");
         }
         catch (Exception ex)
@@ -460,6 +476,16 @@ public partial class MainViewModel : ViewModelBase
         Console.WriteLine($"[MainViewModel.AddMessage] Messages.Count before add: {Messages.Count}");
         Console.WriteLine($"[MainViewModel.AddMessage] Thread ID: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
         
+        // Prevent duplicates (e.g. from server echo vs local add)
+        foreach (var msg in Messages)
+        {
+            if (msg.Id == message.Id)
+            {
+                Console.WriteLine($"[MainViewModel.AddMessage] Ignoring duplicate message Id={message.Id}");
+                return;
+            }
+        }
+
         var messageVm = new MessageViewModel(message, Username);
         Console.WriteLine($"[MainViewModel.AddMessage] Created MessageViewModel: DisplayText='{messageVm.DisplayText}'");
         
