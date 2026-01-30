@@ -7,12 +7,7 @@ using SecureChat.Core.Utilities;
 namespace SecureChat.Client;
 
 /// <summary>
-/// Quản lý kết nối TCP đến chat server với hỗ trợ phiên bảo mật.
-/// 
-/// Thiết kế bảo mật:
-/// - Định dạng framing với tiền tố độ dài khớp với giao thức server
-/// - Trao đổi khóa ECDH thiết lập phiên bảo mật
-/// - Mã hóa AES-256-GCM sau khi trao đổi khóa
+/// Quản lý kết nối TCP đến server, xử lý framing và phiên bảo mật.
 /// </summary>
 public sealed class ServerConnection : IDisposable
 {
@@ -28,14 +23,8 @@ public sealed class ServerConnection : IDisposable
     private string _userId = string.Empty;
     private string _userName = string.Empty;
     
-    /// <summary>
-    /// Kiểm tra phiên bảo mật đã được thiết lập chưa
-    /// </summary>
     public bool IsSecure => _session.IsEstablished;
     
-    /// <summary>
-    /// Sự kiện được kích hoạt khi nhận tin nhắn từ server
-    /// </summary>
     public event EventHandler<Message>? MessageReceived;
     
     /// <summary>
@@ -52,7 +41,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Kết nối đến server
+    /// Kết nối đến server.
     /// </summary>
     public async Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -82,7 +71,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Thực hiện trao đổi khóa với server
+    /// Thực hiện trao đổi khóa với server.
     /// </summary>
     /// <param name="userId">ID người dùng của client</param>
     /// <param name="userName">Tên người dùng của client</param>
@@ -132,7 +121,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Bắt đầu nhận tin nhắn trong vòng lặp
+    /// Bắt đầu vòng lặp nhận tin nhắn.
     /// </summary>
     public async Task StartReceivingAsync(CancellationToken cancellationToken)
     {
@@ -185,7 +174,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Nhận tin nhắn raw với tiền tố độ dài từ server
+    /// Nhận tin nhắn raw có tiền tố độ dài.
     /// </summary>
     private async Task<Message?> ReceiveRawMessageAsync(CancellationToken cancellationToken)
     {
@@ -229,9 +218,6 @@ public sealed class ServerConnection : IDisposable
         return _serializer.Deserialize(messageBuffer);
     }
     
-    /// <summary>
-    /// Đọc chính xác số bytes được yêu cầu
-    /// </summary>
     private async Task<int> ReadExactAsync(byte[] buffer, CancellationToken cancellationToken)
     {
         if (_stream is null) return 0;
@@ -253,7 +239,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Gửi tin nhắn đến server
+    /// Gửi tin nhắn đến server, mã hóa nếu phiên đã thiết lập.
     /// </summary>
     public async Task SendMessageAsync(Message message, CancellationToken cancellationToken)
     {
@@ -281,9 +267,6 @@ public sealed class ServerConnection : IDisposable
         }
     }
     
-    /// <summary>
-    /// Kiểm tra tin nhắn có phải file transfer không
-    /// </summary>
     private static bool IsFileTransferMessage(MessageType type)
     {
         return type == MessageType.File || 
@@ -292,7 +275,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Gửi tin nhắn trực tiếp với mã hóa E2E
+    /// Gửi tin nhắn trực tiếp dùng mã hóa E2E.
     /// </summary>
     private async Task SendDirectMessageE2EAsync(Message message, bool allowFallback, CancellationToken cancellationToken)
     {
@@ -351,7 +334,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Xử lý tin nhắn peer key exchange
+    /// Xử lý tin nhắn trao đổi khóa với peer.
     /// </summary>
     private async Task HandlePeerKeyExchangeAsync(Message message, CancellationToken cancellationToken)
     {
@@ -369,7 +352,7 @@ public sealed class ServerConnection : IDisposable
     }
     
     /// <summary>
-    /// Xử lý tin nhắn mã hóa - thử giải mã với peer session hoặc server session
+    /// Xử lý tin nhắn mã hóa, ưu tiên giải mã E2E, sau đó đến server session.
     /// </summary>
     private async Task HandleEncryptedMessageAsync(Message encryptedMessage)
     {
@@ -414,16 +397,13 @@ public sealed class ServerConnection : IDisposable
         }
     }
     
-    /// <summary>
-    /// Kiểm tra đã có phiên E2E với peer chưa
-    /// </summary>
     public bool HasE2ESessionWith(string peerName)
     {
         return _peerManager.HasSessionWith(peerName);
     }
     
     /// <summary>
-    /// Gửi tin nhắn raw mà không mã hóa
+    /// Gửi tin nhắn raw (không mã hóa thêm).
     /// </summary>
     private async Task SendRawMessageAsync(Message message, CancellationToken cancellationToken)
     {
@@ -447,9 +427,6 @@ public sealed class ServerConnection : IDisposable
         await _stream.FlushAsync(cancellationToken);
     }
     
-    /// <summary>
-    /// Giải phóng tài nguyên kết nối
-    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;

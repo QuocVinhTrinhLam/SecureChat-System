@@ -6,20 +6,12 @@ using SecureChat.Core.Security.Implementations;
 
 namespace SecureChat.Server;
 /// <summary>
-/// Xử lý kết nối từng client với hỗ trợ giao tiếp bảo mật
-/// 
-/// Thiết kế bảo mật:
-/// - Mỗi client nhận một SecureSession riêng với khóa ECDH ephemeral
-/// - Yêu cầu trao đổi khóa trước khi gửi tin nhắn mã hóa
-/// - Sử dụng giao thức JSON với tiền tố độ dài theo MESSAGE_PROTOCOL.md
+/// Xử lý kết nối client và hỗ trợ phiên bảo mật.
 /// </summary>
 public class ClientHandler : IDisposable
 {
-    /// <summary>Tên hiển thị của người dùng.</summary>
     public string User { get; private set; } = "Ẩn danh";
-    /// <summary>Địa chỉ endpoint của client.</summary>
     public string ClientEndpoint { get; }
-    /// <summary>Kiểm tra phiên bảo mật đã được thiết lập chưa.</summary>
     public bool IsSecureSessionEstablished => _session.IsEstablished;
     private readonly TcpClient _client;
     private readonly NetworkStream _stream;
@@ -39,18 +31,17 @@ public class ClientHandler : IDisposable
         ClientEndpoint = client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
     }
     /// <summary>
-    /// Vòng lặp xử lý chính. Thực hiện trao đổi khóa sau đó xử lý tin nhắn
+    /// Vòng lặp chính xử lý trao đổi khóa và tin nhắn.
     /// </summary>
     public async Task HandleAsync()
     {
         try
         {
-            // Khởi tạo phiên của chúng ta
+            // Khởi tạo phiên
             await _session.InitializeAsync();            
-            Console.WriteLine($"[SERVER] Phiên bảo mật đã khởi tạo cho {ClientEndpoint}");
-            // Gửi tin nhắn chào mừng
-            await SendSystemMessageAsync("Chào mừng bạn đến với SecureChat Server. Đang chờ trao đổi khóa...");
-            // Vòng lặp nhận tin nhắn
+            Console.WriteLine($"[SERVER] Đã khởi tạo phiên bảo mật cho {ClientEndpoint}");
+
+            await SendSystemMessageAsync("Chào mừng đến SecureChat Server. Đang chờ trao đổi khóa...");
             while (true)
             {
                 var message = await ReceiveMessageAsync();
@@ -68,9 +59,6 @@ public class ClientHandler : IDisposable
             Dispose();
         }
     }
-    /// <summary>
-    /// Xử lý tin nhắn đến dựa trên loại và trạng thái phiên
-    /// </summary>
     private async Task ProcessMessageAsync(Message message)
     {
         Console.WriteLine($"[SERVER] Nhận tin nhắn loại {message.Type} từ {ClientEndpoint}");
@@ -106,21 +94,18 @@ public class ClientHandler : IDisposable
                 break;
         }
     }
-    /// <summary>
-    /// Xử lý tin nhắn trao đổi khóa từ client
-    /// </summary>
     private async Task HandleKeyExchangeAsync(Message clientKeyMessage)
     {
         try
         {
-            Console.WriteLine($"[SERVER] Nhận khóa công khai từ {ClientEndpoint}");           
-            // Xử lý khóa công khai của client
+            Console.WriteLine($"[SERVER] Nhận được khóa công khai từ {ClientEndpoint}");           
+            
             await _session.ProcessKeyExchangeMessageAsync(clientKeyMessage);            
-            // Gửi khóa công khai của chúng ta về client
+            
             var serverKeyMessage = _session.GetKeyExchangeMessage(_serverId, _serverName);
             await SendMessageAsync(serverKeyMessage);
-            Console.WriteLine($"[SERVER] Phiên bảo mật đã thiết lập với {ClientEndpoint}");            
-            // Thông báo cho client rằng phiên đã được thiết lập
+            Console.WriteLine($"[SERVER] Đã thiết lập phiên bảo mật với {ClientEndpoint}");            
+            
             await SendSystemMessageAsync("Kết nối bảo mật đã được thiết lập. Mã hóa AES-256-GCM đang hoạt động.");
         }
         catch (SecurityException ex)
@@ -130,8 +115,7 @@ public class ClientHandler : IDisposable
         }
     }
     /// <summary>
-    /// Xử lý tin nhắn mã hóa - chuyển tiếp đến người nhận mà không giải mã
-    /// Bảo mật: Server KHÔNG BAO GIỜ giải mã nội dung tin nhắn, chỉ chuyển tiếp dựa trên metadata
+    /// Chuyển tiếp tin nhắn mã hóa mà không giải mã nội dung.
     /// </summary>
     private async Task HandleEncryptedMessageAsync(Message encryptedMessage)
     {
@@ -154,9 +138,7 @@ public class ClientHandler : IDisposable
     }
     
     /// <summary>
-    /// Chuyển tiếp tin nhắn peer key exchange đến người nhận
-    /// Server CHỈ chuyển tiếp, KHÔNG đọc hay xử lý nội dung
-    /// Bảo mật: Cho phép clients thiết lập E2E session trực tiếp
+    /// Chuyển tiếp tin nhắn trao đổi khóa ngang hàng (peer).
     /// </summary>
     private async Task ForwardPeerKeyExchangeAsync(Message message)
     {
@@ -184,8 +166,7 @@ public class ClientHandler : IDisposable
     }
     
     /// <summary>
-    /// Xử lý tin nhắn liên quan đến file transfer
-    /// Server giải mã, rồi mã hóa lại với khóa của người nhận
+    /// Xử lý tin nhắn truyền file bằng cách mã hóa lại cho người nhận.
     /// </summary>
     private async Task HandleFileTransferAsync(Message message)
     {
@@ -254,10 +235,7 @@ public class ClientHandler : IDisposable
     /// Lưu ý: Để mã hóa E2E thật sự, clients cần trao đổi khóa trực tiếp
     /// </summary>
     /// <summary>
-    /// Chuyển tiếp tin nhắn trực tiếp đến người nhận cụ thể
-    /// Hỗ trợ 2 chế độ:
-    /// 1. E2E (Blind Forward): Nếu KeyId không khớp Server Session, chuyển tiếp nguyên vẹn
-    /// 2. Relay (Fallback): Nếu KeyId khớp, giải mã và mã hóa lại (Server-in-the-Middle)
+    /// Định tuyến tin nhắn trực tiếp. Sử dụng chuyển tiếp mù cho E2E, ngược lại dùng relay.
     /// </summary>
     private async Task RouteDirectMessageAsync(Message encryptedMessage)
     {
@@ -316,7 +294,7 @@ public class ClientHandler : IDisposable
     }
     
     /// <summary>
-    /// Mã hóa tin nhắn cho client này sử dụng khóa phiên của họ
+    /// Mã hóa tin nhắn cho client này sử dụng khóa phiên của họ.
     /// </summary>
     public async Task<Message> EncryptForClientAsync(Message plaintext)
     {
@@ -324,8 +302,7 @@ public class ClientHandler : IDisposable
     }
     
     /// <summary>
-    /// Broadcast tin nhắn đến tất cả clients đã kết nối
-    /// Server giải mã và mã hóa lại cho mỗi người nhận
+    /// Broadcast tin nhắn đến tất cả client đang kết nối.
     /// </summary>
     private async Task BroadcastMessageAsync(Message encryptedMessage)
     {
@@ -358,9 +335,6 @@ public class ClientHandler : IDisposable
             Console.WriteLine($"[SERVER] Lỗi giải mã broadcast: {ex.Message}");
         }
     }
-    /// <summary>
-    /// Xử lý tin nhắn văn bản không mã hóa
-    /// </summary>
     private async Task HandleTextMessageAsync(Message message)
     {
         if (_session.IsEstablished)
@@ -379,9 +353,6 @@ public class ClientHandler : IDisposable
         );
         await SendMessageAsync(response);
     }
-    /// <summary>
-    /// Xử lý tin nhắn tham gia
-    /// </summary>
     private async Task HandleJoinAsync(Message message)
     {
         User = message.SenderName;
@@ -417,16 +388,13 @@ public class ClientHandler : IDisposable
     }
     
     /// <summary>
-    /// Gửi danh sách users online
+    /// Gửi danh sách user đang online.
     /// </summary>
     private async Task SendUserListAsync(List<string> users)
     {
         var message = Message.CreateUserListMessage(users);
         await SendMessageAsync(message);
     }
-    /// <summary>
-    /// Gửi tin nhắn raw sử dụng định dạng JSON với tiền tố độ dài
-    /// </summary>
     public async Task SendMessageAsync(Message message)
     {
         if (_disposed) return;
@@ -448,9 +416,6 @@ public class ClientHandler : IDisposable
             Console.WriteLine($"[SERVER] Lỗi gửi tin nhắn: {ex.Message}");
         }
     }
-    /// <summary>
-    /// Nhận tin nhắn sử dụng định dạng JSON với tiền tố độ dài
-    /// </summary>
     private async Task<Message?> ReceiveMessageAsync()
     {
         try
@@ -493,17 +458,11 @@ public class ClientHandler : IDisposable
             return null;
         }
     }
-    /// <summary>
-    /// Gửi tin nhắn thông báo hệ thống
-    /// </summary>
     private async Task SendSystemMessageAsync(string content)
     {
         var message = Message.CreateSystemMessage(content);
         await SendMessageAsync(message);
     }
-    /// <summary>
-    /// Gửi tin nhắn lỗi
-    /// </summary>
     private async Task SendErrorAsync(string error)
     {
         var message = new Message

@@ -3,11 +3,8 @@ using Microsoft.Extensions.Logging;
 namespace SecureChat.Server;
 public class ClientManager
 {
-    // Danh sách các client đang kết nối
     private readonly List<ClientHandler> _clients = new();
-    // Mapping từ username -> ClientHandler để routing
     private readonly Dictionary<string, ClientHandler> _usernameLookup = new(StringComparer.OrdinalIgnoreCase);
-    // Đối tượng khóa để đảm bảo an toàn luồng
     private readonly object _lock = new();
     private readonly ILogger<ClientManager> _logger;
     public ClientManager(ILogger<ClientManager> logger)

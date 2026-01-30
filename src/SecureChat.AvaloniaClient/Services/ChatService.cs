@@ -11,7 +11,7 @@ namespace SecureChat.AvaloniaClient.Services;
 
 /// <summary>
 /// Service quản lý kết nối chat và networking.
-/// Sử dụng trực tiếp ServerConnection để tránh phụ thuộc vào console logic của ChatClient.
+/// Sử dụng trực tiếp ServerConnection để tránh phụ thuộc vào Console.
 /// </summary>
 public class ChatService : IDisposable
 {
@@ -24,27 +24,27 @@ public class ChatService : IDisposable
     private string _userName = string.Empty;
     
     /// <summary>
-    /// Username của người dùng hiện tại
+    /// Username hiện tại.
     /// </summary>
     public string UserName => _userName;
     
     /// <summary>
-    /// Event được raise khi nhận tin nhắn từ server (trên UI thread)
+    /// Được kích hoạt khi nhận tin nhắn (trên UI thread).
     /// </summary>
     public event EventHandler<Message>? MessageReceived;
     
     /// <summary>
-    /// Event được raise khi trạng thái kết nối thay đổi (trên UI thread)
+    /// Được kích hoạt khi trạng thái kết nối thay đổi (trên UI thread).
     /// </summary>
     public event EventHandler<ConnectionState>? ConnectionStateChanged;
     
     /// <summary>
-    /// Event được raise khi có lỗi xảy ra
+    /// Được kích hoạt khi có lỗi.
     /// </summary>
     public event EventHandler<string>? ErrorOccurred;
     
     /// <summary>
-    /// Kiểm tra đã kết nối chưa
+    /// Đã kết nối chưa.
     /// </summary>
     public bool IsConnected { get; private set; }
     
@@ -54,7 +54,7 @@ public class ChatService : IDisposable
     }
     
     /// <summary>
-    /// Kết nối đến server
+    /// Kết nối đến server.
     /// </summary>
     public async Task ConnectAsync(string host, int port, string username)
     {
@@ -107,7 +107,7 @@ public class ChatService : IDisposable
     }
     
     /// <summary>
-    /// Ngắt kết nối
+    /// Ngắt kết nối khỏi server.
     /// </summary>
     public async Task DisconnectAsync()
     {
@@ -158,7 +158,7 @@ public class ChatService : IDisposable
     }
     
     /// <summary>
-    /// Gửi tin nhắn
+    /// Gửi tin nhắn.
     /// </summary>
     /// <param name="content">Nội dung tin nhắn</param>
     /// <param name="recipientName">Tên người nhận (null = broadcast)</param>
@@ -202,7 +202,7 @@ public class ChatService : IDisposable
     }
     
     /// <summary>
-    /// Gửi file metadata để bắt đầu transfer
+    /// Gửi metadata file để bắt đầu truyền.
     /// </summary>
     public async Task SendFileMetadataAsync(FileMetadata metadata, string recipientName)
     {
@@ -221,7 +221,7 @@ public class ChatService : IDisposable
     }
     
     /// <summary>
-    /// Gửi một chunk của file
+    /// Gửi một chunk file.
     /// </summary>
     public async Task SendFileChunkAsync(FileChunkData chunkData, string recipientName)
     {
@@ -239,7 +239,7 @@ public class ChatService : IDisposable
     }
     
     /// <summary>
-    /// Gửi xác nhận hoàn tất transfer
+    /// Gửi tín hiệu hoàn tất file.
     /// </summary>
     public async Task SendFileCompleteAsync(string fileId, string fileName, string recipientName)
     {
@@ -258,7 +258,7 @@ public class ChatService : IDisposable
     }
     
     /// <summary>
-    /// Xử lý tin nhắn từ ServerConnection và dispatch lên UI thread
+    /// Xử lý tin nhắn đến và điều phối lên UI thread.
     /// </summary>
     private void OnServerConnectionMessageReceived(object? sender, Message message)
     {
@@ -273,7 +273,7 @@ public class ChatService : IDisposable
     }
     
     /// <summary>
-    /// Raise ConnectionStateChanged event trên UI thread
+    /// Kích hoạt sự kiện ConnectionStateChanged trên UI thread.
     /// </summary>
     private void RaiseConnectionStateChanged(ConnectionState state)
     {
@@ -284,7 +284,7 @@ public class ChatService : IDisposable
     }
     
     /// <summary>
-    /// Raise ErrorOccurred event trên UI thread
+    /// Kích hoạt sự kiện ErrorOccurred trên UI thread.
     /// </summary>
     private void RaiseError(string error)
     {
@@ -306,7 +306,7 @@ public class ChatService : IDisposable
 }
 
 /// <summary>
-/// Logger implementation cho Avalonia UI
+/// Implementation Logger cho Avalonia UI.
 /// </summary>
 internal class AvaloniaLogger : ILogger
 {

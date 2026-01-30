@@ -5,40 +5,28 @@ using SecureChat.Core.Security.Interfaces;
 namespace SecureChat.Core.Security.Implementations
 {
     /// <summary>
-    /// Cung cấp implementation mã hóa authenticated AES-256-GCM
+    /// Triển khai mã hóa xác thực AES-256-GCM.
     /// </summary>
     public sealed class AesGcmEncryption : ISymmetricEncryption
     {
         private const int KeySize = 32;   // 256-bit
         private const int NonceSize = 12; // 96-bit
         private const int TagSize = 16;   // 128-bit
-        /// <summary>
-        /// Lấy kích thước khóa đối xứng tính bằng bits.
-        /// </summary>
+        /// <inheritdoc />
         public int KeySizeBits => 256;
-        /// <summary>
-        /// Lấy định danh thuật toán sử dụng trong message metadata
-        /// </summary>
+        /// <inheritdoc />
         public string AlgorithmIdentifier => "AES-256-GCM";
         /// <summary>
-        /// Tạo khóa AES 256-bit ngẫu nhiên an toàn về mặt mật mã
+        /// Tạo khóa AES 256-bit an toàn (Base64).
         /// </summary>
-        /// <returns>Khóa AES được mã hóa Base64.</returns>
         public string GenerateKey()
         {
             return Convert.ToBase64String(RandomNumberGenerator.GetBytes(KeySize));
         }
         /// <summary>
-        /// Mã hóa plaintext sử dụng AES-256-GCM
+        /// Mã hóa plaintext sử dụng AES-256-GCM.
+        /// Trả về (ciphertext, iv, tag) dưới dạng chuỗi Base64.
         /// </summary>
-        /// <param name="plaintext">Chuỗi plaintext cần mã hóa.</param>
-        /// <param name="key">Khóa mã hóa 256-bit được mã hóa Base64.</param>
-        /// <returns>
-        /// Tuple chứa:
-        /// - ciphertext: Dữ liệu đã mã hóa ở Base64
-        /// - iv: Nonce ở Base64
-        /// - tag: Authentication tag ở Base64
-        /// </returns>
         public Task<(string ciphertext, string iv, string tag)>
             EncryptAsync(string plaintext, string key)
         {
@@ -56,17 +44,9 @@ namespace SecureChat.Core.Security.Implementations
             ));
         }
         /// <summary>
-        /// Giải mã dữ liệu đã mã hóa AES-256-GCM
+        /// Giải mã ciphertext AES-256-GCM.
+        /// Ném ngoại lệ CryptographicException nếu thất bại.
         /// </summary>
-        /// <param name="ciphertext">Ciphertext được mã hóa Base64.</param>
-        /// <param name="key">Khóa mã hóa 256-bit được mã hóa Base64.</param>
-        /// <param name="iv">Nonce được mã hóa Base64.</param>
-        /// <param name="tag">Authentication tag được mã hóa Base64.</param>
-        /// <returns>Chuỗi plaintext đã giải mã.</returns>
-        /// <exception cref="CryptographicException">
-        /// Thrown nếu xác thực thất bại, ciphertext bị giả mạo,
-        /// hoặc dữ liệu đầu vào không hợp lệ
-        /// </exception>
         public Task<string> DecryptAsync(
             string ciphertext,
             string key,
@@ -89,9 +69,9 @@ namespace SecureChat.Core.Security.Implementations
                 ex is CryptographicException ||
                 ex is AuthenticationTagMismatchException)
             {
-                // Chuẩn hóa tất cả lỗi thành CryptographicException
+                // Normalize exceptions
                 throw new CryptographicException(
-                    "Giải mã AES-256-GCM thất bại.", ex);
+                    "AES-256-GCM decryption failed.", ex);
             }
         }
     }
