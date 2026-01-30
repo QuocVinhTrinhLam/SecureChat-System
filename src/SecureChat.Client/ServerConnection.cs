@@ -6,9 +6,6 @@ using SecureChat.Core.Utilities;
 
 namespace SecureChat.Client;
 
-/// <summary>
-/// Quản lý kết nối TCP đến server, xử lý framing và phiên bảo mật.
-/// </summary>
 public sealed class ServerConnection : IDisposable
 {
     private readonly string _host;
@@ -27,9 +24,6 @@ public sealed class ServerConnection : IDisposable
     
     public event EventHandler<Message>? MessageReceived;
     
-    /// <summary>
-    /// Tạo kết nối server mới
-    /// </summary>
     public ServerConnection(string host, int port, ILogger logger)
     {
         _host = host;
@@ -40,9 +34,6 @@ public sealed class ServerConnection : IDisposable
         _peerManager = new PeerSessionManager();
     }
     
-    /// <summary>
-    /// Kết nối đến server.
-    /// </summary>
     public async Task ConnectAsync(CancellationToken cancellationToken)
     {
         _client = new TcpClient();
@@ -70,12 +61,6 @@ public sealed class ServerConnection : IDisposable
         }
     }
     
-    /// <summary>
-    /// Thực hiện trao đổi khóa với server.
-    /// </summary>
-    /// <param name="userId">ID người dùng của client</param>
-    /// <param name="userName">Tên người dùng của client</param>
-    /// <param name="cancellationToken">Token hủy</param>
     public async Task PerformKeyExchangeAsync(string userId, string userName, CancellationToken cancellationToken)
     {
         _userId = userId;
@@ -120,9 +105,6 @@ public sealed class ServerConnection : IDisposable
         _logger.Security("Phiên bảo mật đã thiết lập! (AES-256-GCM)");
     }
     
-    /// <summary>
-    /// Bắt đầu vòng lặp nhận tin nhắn.
-    /// </summary>
     public async Task StartReceivingAsync(CancellationToken cancellationToken)
     {
         if (_stream is null)
@@ -173,9 +155,6 @@ public sealed class ServerConnection : IDisposable
         }
     }
     
-    /// <summary>
-    /// Nhận tin nhắn raw có tiền tố độ dài.
-    /// </summary>
     private async Task<Message?> ReceiveRawMessageAsync(CancellationToken cancellationToken)
     {
         if (_stream is null) return null;
@@ -238,9 +217,6 @@ public sealed class ServerConnection : IDisposable
         return totalRead;
     }
     
-    /// <summary>
-    /// Gửi tin nhắn đến server, mã hóa nếu phiên đã thiết lập.
-    /// </summary>
     public async Task SendMessageAsync(Message message, CancellationToken cancellationToken)
     {
         // Tin nhắn trực tiếp HOẶC File transfer - sử dụng E2E encryption
@@ -274,9 +250,6 @@ public sealed class ServerConnection : IDisposable
                type == MessageType.FileComplete;
     }
     
-    /// <summary>
-    /// Gửi tin nhắn trực tiếp dùng mã hóa E2E.
-    /// </summary>
     private async Task SendDirectMessageE2EAsync(Message message, bool allowFallback, CancellationToken cancellationToken)
     {
         var recipientName = message.RecipientName!;
@@ -333,9 +306,6 @@ public sealed class ServerConnection : IDisposable
         Console.WriteLine($"[ServerConnection] E2E message sent to {recipientName}");
     }
     
-    /// <summary>
-    /// Xử lý tin nhắn trao đổi khóa với peer.
-    /// </summary>
     private async Task HandlePeerKeyExchangeAsync(Message message, CancellationToken cancellationToken)
     {
         _logger.Security("Nhận {0} từ {1}", message.Type, message.SenderName);
@@ -351,9 +321,6 @@ public sealed class ServerConnection : IDisposable
         }
     }
     
-    /// <summary>
-    /// Xử lý tin nhắn mã hóa, ưu tiên giải mã E2E, sau đó đến server session.
-    /// </summary>
     private async Task HandleEncryptedMessageAsync(Message encryptedMessage)
     {
         Console.WriteLine($"[ServerConnection] HandleEncryptedMessageAsync: SenderName={encryptedMessage.SenderName}");
@@ -402,9 +369,6 @@ public sealed class ServerConnection : IDisposable
         return _peerManager.HasSessionWith(peerName);
     }
     
-    /// <summary>
-    /// Gửi tin nhắn raw (không mã hóa thêm).
-    /// </summary>
     private async Task SendRawMessageAsync(Message message, CancellationToken cancellationToken)
     {
         if (_stream is null)

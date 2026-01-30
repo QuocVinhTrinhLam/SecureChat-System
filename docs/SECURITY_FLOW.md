@@ -12,10 +12,10 @@ Tài liệu này mô tả luồng bảo mật end-to-end của SecureChat-System
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         Luồng Bảo Mật SecureChat                             │
+│                     Luồng Bảo Mật SecureChat (Hybrid)                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  1. Kết nối TCP  →  2. Trao đổi khóa  →  3. Nhắn tin/File  →  4. Server     │
-│                        ECDH P-256         Mã hóa E2E          Relay         │
+│  1. Kết nối TCP  →  2. Trao đổi khóa  →  3. Hybrid Message Routing          │
+│                        ECDH P-256         (Ưu tiên E2E, Fallback Relay)     │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  SecureSession điều phối: ECDH + HKDF + AES-256-GCM + HMAC-SHA256           │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -23,37 +23,104 @@ Tài liệu này mô tả luồng bảo mật end-to-end của SecureChat-System
 
 ---
 
-## Mô Hình Bảo Mật
+## Bộ Não Bảo Mật (The Security Brain)
 
-### Kiến Trúc Client-Server Hiện Tại
+Để hiểu rõ cách hệ thống xử lý bảo mật, hãy hình dung "bộ não" này gồm 2 bán cầu chính: **Trao Đổi (Exchange)** và **Dẫn Xuất (Derivation)**.
 
-```mermaid
-flowchart TB
-    subgraph Client_A[Client A - Vinh]
-        CA_Session[SecureSession A]
-    end
-    
-    subgraph Server[Server]
-        S_Session_A[SecureSession với A]
-        S_Logic[Message Router]
-        S_Session_B[SecureSession với B]
-    end
-    
-    subgraph Client_B[Client B - Hoang]
-        CB_Session[SecureSession B]
-    end
-    
-    CA_Session <-->|"Encrypted (Key A-S)"| S_Session_A
-    S_Session_A --> S_Logic
-    S_Logic --> S_Session_B
-    S_Session_B <-->|"Encrypted (Key B-S)"| CB_Session
+### 1. Phân Biệt ECDH và HKDF
+
+| Thành Phần | File Code | Loại Hình | Vai Trò Thực Sự |
+|------------|-----------|-----------|-----------------|
+| **ECDH** | `EcdhKeyExchange.cs` | **Trao đổi qua mạng** | Phối hợp giữa 2 bên để tạo ra một bí mật chung (Shared Secret). Cần gửi Public Key qua mạng. |
+| **HKDF** | `HkdfKeyDerivation.cs` | **Xử lý cục bộ** | Từ bí mật chung đó, "xay" ra các chìa khóa cụ thể để sử dụng. Không bao giờ gửi qua mạng. |
+
+#### Mô Hình Tư Duy Đúng (Correct Mental Model)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│              SỰ PHỐI HỢP GIỮA ECDH VÀ HKDF                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Client A (Alice)                         Client B (Bob)               │
+│   ────────────────                         ──────────────               │
+│                                                                         │
+│   1️⃣ ECDH (Trao đổi)                       1️⃣ ECDH (Trao đổi)            │
+│   • Tạo Private/Public Key                 • Tạo Private/Public Key     │
+│   • Gửi Public Key A ──────────>           • Nhận Public Key A          │
+│   • Nhận Public Key B <──────────          • Gửi Public Key B           │
+│          ↓                                        ↓                     │
+│   ⚡ Shared Secret (Giống nhau) ⚡         ⚡ Shared Secret (Giống nhau) ⚡ │
+│          ↓                                        ↓                     │
+│                                                                         │
+│   ════════════════════════════════════════════════════════════════════  │
+│          🛑 Ranh giới mạng (Ngừng gửi dữ liệu bảo mật tại đây) 🛑         │
+│   ════════════════════════════════════════════════════════════════════  │
+│                                                                         │
+│   2️⃣ HKDF (Dẫn xuất cục bộ)                2️⃣ HKDF (Dẫn xuất cục bộ)     │
+│   • Input: Shared Secret                   • Input: Shared Secret       │
+│   • Output:                                • Output:                    │
+│     🔑 Encryption Key                        🔑 Encryption Key          │
+│     🔖 MAC Key                               🔖 MAC Key                 │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-> [!IMPORTANT]
-> **Mô hình hiện tại**: Server đóng vai trò **relay trung gian**. Mỗi client thiết lập phiên bảo mật riêng với server. Khi client A gửi tin nhắn cho client B:
-> 1. Server **giải mã** tin nhắn với khóa A-Server
-> 2. Server **mã hóa lại** tin nhắn với khóa B-Server
-> 3. Server **chuyển tiếp** đến client B
+### 2. Vai Trò Của Các Loại Khóa (Defense in Depth)
+
+Hệ thống sử dụng mô hình **Encrypt-then-MAC** để bảo vệ kép.
+
+#### 🔑 Encryption Key (Khóa Mã Hóa) - Bảo Mật (Confidentiality)
+*   **Mục đích**: Giấu nội dung tin nhắn.
+*   **Cơ chế**: Dùng AES-256-GCM. Biến "Hello" thành `xc9f1...`.
+*   **Ví dụ**: Giống như **Chiếc Chìa Khóa** két sắt. Chỉ người có chìa mới mở két đọc thư được.
+
+#### 🔖 MAC Key (Khóa Xác Thực) - Toàn Vẹn (Integrity)
+*   **Mục đích**: Đảm bảo tin nhắn chính chủ và không bị sửa đổi.
+*   **Cơ chế**: Dùng HMAC-SHA256. Tạo chữ ký số trên dữ liệu đã mã hóa.
+*   **Ví dụ**: Giống như **Con Dấu Niêm Phong** dán ngoài két sắt.
+    *   Nếu niêm phong rách → Có kẻ gian đụng vào két.
+    *   Nếu niêm phong lạ → Không phải két chính chủ gửi.
+
+> [!TIP]
+> **Quy trình nhận tin**: Kiểm tra **Niêm phong (MAC)** trước 🧐. Nếu xịn mới dùng **Chìa khóa (Encryption Key)** mở két 🔓.
+
+---
+
+## Mô Hình Bảo Mật Lai (Hybrid Security Model)
+
+Hệ thống sử dụng cơ chế bảo mật lai thông minh, ưu tiên **True E2E** và tự động chuyển sang **Server Relay** nếu cần thiết.
+
+### 1. Cơ Chế Ưu Tiên (Priority Logic)
+Client sẽ luôn cố gắng thiết lập kênh bảo mật trực tiếp (E2E) trước.
+
+```mermaid
+flowchart TD
+    A[Gửi Tin Nhắn Direct] --> B{Đã có E2E Session?}
+    B -->|Có| C[Gửi qua kênh E2E]
+    B -->|Chưa| D[Thử Key Exchange với Peer]
+    
+    D --> E{Thành công?}
+    E -->|OK| F[Lưu Session] --> C
+    E -->|Timeout (5s)| G[Fallback: Server Relay]
+    
+    C -->|Mã hóa với Key Peer| H[Server Blind Forward]
+    G -->|Mã hóa với Key Server| I[Server Decrypt/Re-encrypt]
+```
+
+### 2. Hai Chế Độ Hoạt Động
+
+#### ✅ Chế Độ 1: True E2E (Ưu Tiên)
+*   **Kích hoạt**: Khi 2 client trao đổi key thành công.
+*   **Bảo mật**: Server **KHÔNG THỂ** đọc tin nhắn (do không có Shared Secret của 2 client).
+*   **Luồng**: `Client A (Encrypt E2E) --> Server (Blind Forward) --> Client B (Decrypt E2E)`
+
+#### ⚠️ Chế Độ 2: Server Relay (Fallback)
+*   **Kích hoạt**: Khi kết nối P2P thất bại hoặc timeout (5s).
+*   **Bảo mật**: Server **CÓ THỂ** đọc tin nhắn (Server-in-the-Middle).
+*   **Luồng**: `Client A (Encrypt Server) --> Server (Decrypt & Re-encrypt) --> Client B (Decrypt Server)`
+
+> [!NOTE]
+> Đoạn mô tả trong hình ảnh bạn đề cập ("Mô hình hiện tại: Server đóng vai trò relay...") chính là mô tả cho **Chế Độ 2 (Fallback)** khi E2E không khả dụng.
 
 ---
 
@@ -112,74 +179,98 @@ sequenceDiagram
 
 ---
 
-## Luồng Tin Nhắn Trực Tiếp (Direct Message)
+## Luồng Tin Nhắn Trực Tiếp (Direct Message Flow)
 
-### Routing Qua Server
+### 1. Luồng E2E (Mặc định)
 
 ```mermaid
 sequenceDiagram
-    participant A as Client A (Vinh)
+    participant A as Client A
     participant S as Server
-    participant B as Client B (Hoang)
+    participant B as Client B
     
-    Note over A,B: Tin nhắn từ A đến B
+    Note over A,B: Giai đoạn Handshake (Một lần)
+    A->>S: PeerKeyExchange (Public Key A)
+    S->>B: Forward KeyExchange
+    B->>S: PeerKeyExchangeResponse (Public Key B)
+    S->>A: Forward Response
+    Note over A,B: Đã thiết lập Shared Secret (Server không biết)
+
+    Note over A,B: Giai đoạn Nhắn tin
+    A->>A: Encrypt(msg, Key_AB)
+    A->>S: Encrypted E2E Message
+    S->>S: Routing (Blind Forward)
+    S->>B: Encrypted E2E Message
+    B->>B: Decrypt(msg, Key_AB)
+```
+
+### 2. Luồng Fallback (Relay Mode)
+*Tự động kích hoạt khi E2E handshake thất bại hoặc timeout.*
+
+```mermaid
+sequenceDiagram
+    participant A as Client A
+    participant S as Server
+    participant B as Client B
     
-    A->>A: EncryptMessageAsync(msg, keyA-S)
-    A->>S: Encrypted Message (A→S)
-    S->>S: DecryptMessageAsync(keyA-S)
-    S->>S: Read recipientName = "Hoang"
-    S->>S: EncryptMessageAsync(msg, keyB-S)
-    S->>B: Encrypted Message (S→B)
-    B->>B: DecryptMessageAsync(keyB-S)
-    B->>B: Display message from Vinh
-    
-    Note over A,B: Echo lại cho người gửi
-    S->>S: EncryptMessageAsync(msg, keyA-S)
-    S->>A: Encrypted Echo (S→A)
-    A->>A: Display sent message
+    A->>A: Encrypt(msg, Key_AS)
+    A->>S: Encrypted Message
+    S->>S: Decrypt(Key_AS) -> Plaintext -> Encrypt(Key_BS)
+    S->>B: Re-Encrypted Message
+    B->>B: Decrypt(Key_BS)
 ```
 
 ---
 
 ## Luồng File Transfer
 
-### Sơ Đồ File Transfer
+### Sơ Đồ File Transfer (E2EE Enforced)
 
 ```mermaid
 sequenceDiagram
     participant Sender as Client Gửi
     participant FTS as FileTransferService
+    participant PSM as PeerSessionManager
     participant Server as Server
     participant Receiver as Client Nhận
 
-    Note over Sender,Receiver: GIAI ĐOẠN 1: Chuẩn bị file
+    Note over Sender,Receiver: GIAI ĐOẠN 1: Chuẩn bị file & Handshake
     Sender->>FTS: PrepareFileForSendingAsync(filePath)
-    FTS->>FTS: Tính SHA-256 hash
-    FTS->>FTS: Chia file thành chunks 64KB
-    FTS-->>Sender: FileMetadata (fileId, fileName, totalChunks)
+    FTS-->>Sender: FileMetadata (fileId, hash, etc.)
+    Sender->>PSM: Establish E2E Session (if needed)
+    
+    rect rgb(255, 230, 230)
+    Note right of Sender: CRITICAL: Nếu E2EE Handshake thất bại, HỦY transfer.<br/>KHÔNG fallback sang Server Encryption.
+    end
 
-    Note over Sender,Receiver: GIAI ĐOẠN 2: Gửi metadata
+    Note over Sender,Receiver: GIAI ĐOẠN 2: Gửi metadata (E2E)
+    Sender->>PSM: Encrypt(FileMetadata, RecipientKey)
     Sender->>Server: Encrypted FileMetadata
-    Server->>Server: Decrypt + Re-encrypt
+    Server->>Server: Blind Forward (Can't Decrypt)
     Server->>Receiver: Encrypted FileMetadata
+    Receiver->>PSM: Decrypt(RecipientKey)
     Receiver->>FTS: StartReceiving(metadata)
 
-    Note over Sender,Receiver: GIAI ĐOẠN 3: Gửi chunks
+    Note over Sender,Receiver: GIAI ĐOẠN 3: Gửi chunks (E2E)
     loop Cho mỗi chunk
         Sender->>FTS: ReadFileChunksAsync()
-        FTS-->>Sender: FileChunkData (Base64)
+        FTS-->>Sender: FileChunkData
+        Sender->>PSM: Encrypt(Chunk, RecipientKey)
         Sender->>Server: Encrypted Chunk
-        Server->>Server: Decrypt + Re-encrypt
+        Server->>Server: Blind Forward
         Server->>Receiver: Encrypted Chunk
+        Receiver->>PSM: Decrypt(RecipientKey)
         Receiver->>FTS: ReceiveChunk(chunkData)
     end
 
     Note over Sender,Receiver: GIAI ĐOẠN 4: Hoàn tất
-    Sender->>Server: FileComplete message
-    Server->>Receiver: FileComplete message
+    Sender->>PSM: Encrypt(FileComplete)
+    Sender->>Server: Encrypted FileComplete
+    Server->>Receiver: Encrypted FileComplete
+    Receiver->>PSM: Decrypt
     Receiver->>FTS: SaveReceivedFileAsync()
     FTS->>FTS: Verify SHA-256 hash
-    FTS-->>Receiver: File saved to Downloads
+    FTS-->>Receiver: File saved
 ```
 
 ### Cấu Trúc File Transfer Messages
@@ -430,23 +521,23 @@ flowchart TD
 #### 1. Server Có Thể Đọc Tin Nhắn (Server-Relayed Model)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  CẢNH BÁO: Server là trung gian giải mã                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Client A ──(enc)──> Server ──(enc)──> Client B             │
-│                        ↓                                    │
-│                   [Đọc được plaintext]                      │
-│                                                             │
-│  • Server giữ SecureSession riêng với mỗi client            │
-│  • Server giải mã tin nhắn để routing                       │
-│  • Không phải true E2E encryption                           │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Trạng thái: CHỈ xảy ra ở chế độ Fallback (Text Only)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Client A ──(enc)──> Server ──(enc)──> Client B                             │
+│                        ↓                                                    │
+│                   [Đọc được plaintext]                                      │
+│                                                                             │
+│  • Xảy ra khi: E2E Handshake Timeout (Chỉ Text Message)                     │
+│  • Server phải giải mã để re-encrypt cho đích                               │
+│  • LƯU Ý: File Transfer sẽ THẤT BẠI nếu E2E lỗi (không fallback)            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-> [!CAUTION]
-> **Hệ thống hiện tại KHÔNG cung cấp E2E thực sự**. Server có khả năng đọc tất cả tin nhắn vì nó phải giải mã để route.
+> [!WARNING]
+> Trong chế độ **True E2E** (mặc định cho tin nhắn văn bản), Server **KHÔNG THỂ** đọc nội dung tin nhắn. Hạn chế này chỉ áp dụng cho chế độ Fallback và File Transfer.
 
 #### 2. Không Có Xác Thực Lẫn Nhau (TOFU Model)
 
@@ -459,10 +550,11 @@ flowchart TD
 - Khóa phiên (`encryptionKey`, `macKey`) được tạo một lần
 - Nếu khóa bị lộ, tất cả tin nhắn trong phiên đó có thể bị giải mã
 
-#### 4. File Transfer Không Có E2E
+#### 4. (ĐÃ GIẢI QUYẾT) File Transfer Đã Có E2E
 
-- File chunks đi qua server và bị giải mã/mã hóa lại
-- Server có thể đọc nội dung file được truyền
+- File chunks được mã hóa E2E bằng Peer Key
+- Server CHỈ forward mù (blind forward), không thể đọc nội dung file
+- Yêu cầu bắt buộc phải thiết lập được E2E Session để gửi file
 
 ---
 
@@ -472,7 +564,7 @@ flowchart TD
 
 | Tấn công | Trạng thái | Biện pháp |
 |----------|------------|-----------|
-| Man-in-the-Middle (Server) | Không bảo vệ | Server là trusted party |
+| Man-in-the-Middle (Server) | **Đã bảo vệ** (E2E Mode) | Server không thể giải mã trong chế độ E2E |
 | Man-in-the-Middle (Network) | Đã bảo vệ | TLS-like encryption |
 | Replay Attack | Đã xử lý | Message ID + Timestamp |
 | Timing Attack | Đã xử lý | FixedTimeEquals |
@@ -527,7 +619,7 @@ const int MaxContentLength = 500_000; // Characters
 
 | Cải tiến | Mô tả |
 |----------|-------|
-| **True E2E Encryption** | Clients trao đổi khóa trực tiếp, server chỉ relay encrypted blobs |
+| **File Encryption E2E** | ✅ Đã triển khai (Strict Mode: No Fallback) |
 | **Mutual Authentication** | Thêm xác thực lẫn nhau bằng certificate hoặc pre-shared key |
 | **Key Rotation** | Triển khai rekeying định kỳ hoặc sau N tin nhắn |
 
@@ -537,7 +629,6 @@ const int MaxContentLength = 500_000; // Characters
 |----------|-------|
 | **Double Ratchet** | Áp dụng Signal Protocol cho PFS ở mức tin nhắn |
 | **Message Deduplication** | Theo dõi Message ID để chống replay |
-| **File Encryption E2E** | Mã hóa file trước khi gửi, server chỉ relay |
 
 ### Ưu Tiên Thấp
 

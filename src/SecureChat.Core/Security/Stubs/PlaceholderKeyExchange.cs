@@ -1,17 +1,6 @@
 namespace SecureChat.Core.Security.Stubs;
 using SecureChat.Core.Security.Interfaces;
 
-/// <summary>
-/// Placeholder implementation of IKeyExchange for foundation phase.
-/// 
-/// WARNING: This is NOT a secure implementation!
-/// This stub exists to allow the system architecture to be tested
-/// before cryptographic primitives are implemented.
-/// 
-/// TODO (Phase 2): Replace with ECDH implementation using:
-/// - System.Security.Cryptography.ECDiffieHellman
-/// - Curve: P-256 or X25519
-/// </summary>
 public sealed class PlaceholderKeyExchange : IKeyExchange
 {
     private string? _publicKey;

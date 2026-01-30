@@ -2,10 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SecureChat.AvaloniaClient.ViewModels;
 
-/// <summary>
-/// ViewModel hiển thị thông tin bảo mật/mã hóa
-/// Phục vụ demo và thuyết trình
-/// </summary>
+
 public partial class SecurityInfoViewModel : ViewModelBase
 {
     [ObservableProperty]
@@ -26,9 +23,7 @@ public partial class SecurityInfoViewModel : ViewModelBase
     [ObservableProperty]
     private string _keyExchangeInfo = "ECDH P-256";
     
-    /// <summary>
-    /// Cập nhật thông tin từ tin nhắn đã mã hóa
-    /// </summary>
+    
     public void UpdateFromEncryptedMessage(string plaintext, string encrypted, string? iv, string? hmac)
     {
         PlaintextMessage = plaintext;
@@ -37,19 +32,13 @@ public partial class SecurityInfoViewModel : ViewModelBase
         Hmac = hmac?.Length > 32 ? hmac[..32] + "..." : hmac ?? "N/A";
     }
     
-    /// <summary>
-    /// Cập nhật khi kết nối thành công
-    /// </summary>
-    public void UpdateOnConnected()
+        public void UpdateOnConnected()
     {
         Algorithm = "AES-256-GCM + HMAC-SHA256";
         KeyExchangeInfo = "ECDH P-256 (Established)";
     }
     
-    /// <summary>
-    /// Reset khi ngắt kết nối
-    /// </summary>
-    public void Reset()
+        public void Reset()
     {
         Algorithm = "Chưa kết nối";
         PlaintextMessage = "";

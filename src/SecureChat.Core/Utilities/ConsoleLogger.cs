@@ -1,10 +1,5 @@
 namespace SecureChat.Core.Utilities;
 
-/// <summary>
-/// Implementation console logger thread-safe.
-/// Phù hợp cho phát triển và debug; cân nhắc file-based hoặc 
-/// structured logging cho môi trường production.
-/// </summary>
 public sealed class ConsoleLogger : ILogger
 {
     private static readonly object LockObject = new();
@@ -12,10 +7,6 @@ public sealed class ConsoleLogger : ILogger
     /// <inheritdoc />
     public LogLevel MinimumLevel { get; set; } = LogLevel.Info;
     
-    /// <summary>
-    /// Tạo console logger mới với mức tối thiểu được chỉ định.
-    /// </summary>
-    /// <param name="minimumLevel">Mức log tối thiểu để hiển thị.</param>
     public ConsoleLogger(LogLevel minimumLevel = LogLevel.Info)
     {
         MinimumLevel = minimumLevel;

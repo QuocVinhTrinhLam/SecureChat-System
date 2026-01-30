@@ -2,10 +2,6 @@ using SecureChat.Core.Security.Implementations;
 using Xunit;
 
 namespace SecureChat.Tests.Security;
-/// <summary>
-/// Unit tests for AES-256-GCM encryption/decryption
-/// Verify decrypt utility works correctly
-/// </summary>
 public class AesGcmEncryptionTests
 {
     [Fact]

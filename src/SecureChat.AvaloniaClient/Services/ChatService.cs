@@ -9,10 +9,6 @@ using SecureChat.AvaloniaClient.Models;
 
 namespace SecureChat.AvaloniaClient.Services;
 
-/// <summary>
-/// Service quản lý kết nối chat và networking.
-/// Sử dụng trực tiếp ServerConnection để tránh phụ thuộc vào Console.
-/// </summary>
 public class ChatService : IDisposable
 {
     private ServerConnection? _connection;
@@ -23,29 +19,14 @@ public class ChatService : IDisposable
     private string _userId = string.Empty;
     private string _userName = string.Empty;
     
-    /// <summary>
-    /// Username hiện tại.
-    /// </summary>
     public string UserName => _userName;
     
-    /// <summary>
-    /// Được kích hoạt khi nhận tin nhắn (trên UI thread).
-    /// </summary>
     public event EventHandler<Message>? MessageReceived;
     
-    /// <summary>
-    /// Được kích hoạt khi trạng thái kết nối thay đổi (trên UI thread).
-    /// </summary>
     public event EventHandler<ConnectionState>? ConnectionStateChanged;
     
-    /// <summary>
-    /// Được kích hoạt khi có lỗi.
-    /// </summary>
     public event EventHandler<string>? ErrorOccurred;
     
-    /// <summary>
-    /// Đã kết nối chưa.
-    /// </summary>
     public bool IsConnected { get; private set; }
     
     public ChatService()
@@ -53,9 +34,6 @@ public class ChatService : IDisposable
         _logger = new AvaloniaLogger();
     }
     
-    /// <summary>
-    /// Kết nối đến server.
-    /// </summary>
     public async Task ConnectAsync(string host, int port, string username)
     {
         if (IsConnected)
@@ -106,9 +84,6 @@ public class ChatService : IDisposable
         }
     }
     
-    /// <summary>
-    /// Ngắt kết nối khỏi server.
-    /// </summary>
     public async Task DisconnectAsync()
     {
         if (!IsConnected)
@@ -157,11 +132,6 @@ public class ChatService : IDisposable
         }
     }
     
-    /// <summary>
-    /// Gửi tin nhắn.
-    /// </summary>
-    /// <param name="content">Nội dung tin nhắn</param>
-    /// <param name="recipientName">Tên người nhận (null = broadcast)</param>
     public async Task<Message> SendMessageAsync(string content, string? recipientName = null)
     {
         if (!IsConnected || _connection == null)
@@ -201,9 +171,6 @@ public class ChatService : IDisposable
         }
     }
     
-    /// <summary>
-    /// Gửi metadata file để bắt đầu truyền.
-    /// </summary>
     public async Task SendFileMetadataAsync(FileMetadata metadata, string recipientName)
     {
         if (!IsConnected || _connection == null)
@@ -220,9 +187,6 @@ public class ChatService : IDisposable
         await _connection.SendMessageAsync(message, _cts?.Token ?? CancellationToken.None);
     }
     
-    /// <summary>
-    /// Gửi một chunk file.
-    /// </summary>
     public async Task SendFileChunkAsync(FileChunkData chunkData, string recipientName)
     {
         if (!IsConnected || _connection == null)
@@ -238,9 +202,6 @@ public class ChatService : IDisposable
         await _connection.SendMessageAsync(message, _cts?.Token ?? CancellationToken.None);
     }
     
-    /// <summary>
-    /// Gửi tín hiệu hoàn tất file.
-    /// </summary>
     public async Task SendFileCompleteAsync(string fileId, string fileName, string recipientName)
     {
         if (!IsConnected || _connection == null)
@@ -257,9 +218,6 @@ public class ChatService : IDisposable
         await _connection.SendMessageAsync(message, _cts?.Token ?? CancellationToken.None);
     }
     
-    /// <summary>
-    /// Xử lý tin nhắn đến và điều phối lên UI thread.
-    /// </summary>
     private void OnServerConnectionMessageReceived(object? sender, Message message)
     {
         Console.WriteLine($"[ChatService] OnServerConnectionMessageReceived: Type={message.Type}, Sender={message.SenderName}, Content={message.Content}");
@@ -272,9 +230,6 @@ public class ChatService : IDisposable
         });
     }
     
-    /// <summary>
-    /// Kích hoạt sự kiện ConnectionStateChanged trên UI thread.
-    /// </summary>
     private void RaiseConnectionStateChanged(ConnectionState state)
     {
         Dispatcher.UIThread.Post(() =>
@@ -283,9 +238,6 @@ public class ChatService : IDisposable
         });
     }
     
-    /// <summary>
-    /// Kích hoạt sự kiện ErrorOccurred trên UI thread.
-    /// </summary>
     private void RaiseError(string error)
     {
         Dispatcher.UIThread.Post(() =>
@@ -305,9 +257,6 @@ public class ChatService : IDisposable
     }
 }
 
-/// <summary>
-/// Implementation Logger cho Avalonia UI.
-/// </summary>
 internal class AvaloniaLogger : ILogger
 {
     public event EventHandler<string>? LogMessageReceived;

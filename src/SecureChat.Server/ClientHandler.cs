@@ -5,9 +5,6 @@ using SecureChat.Core.Networking;
 using SecureChat.Core.Security.Implementations;
 
 namespace SecureChat.Server;
-/// <summary>
-/// Xử lý kết nối client và hỗ trợ phiên bảo mật.
-/// </summary>
 public class ClientHandler : IDisposable
 {
     public string User { get; private set; } = "Ẩn danh";
@@ -30,9 +27,6 @@ public class ClientHandler : IDisposable
         _serializer = new JsonMessageSerializer();
         ClientEndpoint = client.Client.RemoteEndPoint?.ToString() ?? "Unknown";
     }
-    /// <summary>
-    /// Vòng lặp chính xử lý trao đổi khóa và tin nhắn.
-    /// </summary>
     public async Task HandleAsync()
     {
         try
@@ -114,9 +108,6 @@ public class ClientHandler : IDisposable
             await SendErrorAsync($"Trao đổi khóa thất bại: {ex.Message}");
         }
     }
-    /// <summary>
-    /// Chuyển tiếp tin nhắn mã hóa mà không giải mã nội dung.
-    /// </summary>
     private async Task HandleEncryptedMessageAsync(Message encryptedMessage)
     {
         if (!_session.IsEstablished)
@@ -137,9 +128,6 @@ public class ClientHandler : IDisposable
         }
     }
     
-    /// <summary>
-    /// Chuyển tiếp tin nhắn trao đổi khóa ngang hàng (peer).
-    /// </summary>
     private async Task ForwardPeerKeyExchangeAsync(Message message)
     {
         var recipientName = message.RecipientName;
@@ -165,9 +153,6 @@ public class ClientHandler : IDisposable
         await recipient.SendMessageAsync(message);
     }
     
-    /// <summary>
-    /// Xử lý tin nhắn truyền file bằng cách mã hóa lại cho người nhận.
-    /// </summary>
     private async Task HandleFileTransferAsync(Message message)
     {
         if (!_session.IsEstablished)
@@ -229,14 +214,6 @@ public class ClientHandler : IDisposable
         }
     }
     
-    /// <summary>
-    /// Chuyển tiếp tin nhắn trực tiếp đến người nhận cụ thể
-    /// Server giải mã với khóa của người gửi và mã hóa lại với khóa của người nhận
-    /// Lưu ý: Để mã hóa E2E thật sự, clients cần trao đổi khóa trực tiếp
-    /// </summary>
-    /// <summary>
-    /// Định tuyến tin nhắn trực tiếp. Sử dụng chuyển tiếp mù cho E2E, ngược lại dùng relay.
-    /// </summary>
     private async Task RouteDirectMessageAsync(Message encryptedMessage)
     {
         var recipientName = encryptedMessage.RecipientName!;
@@ -293,17 +270,11 @@ public class ClientHandler : IDisposable
         }
     }
     
-    /// <summary>
-    /// Mã hóa tin nhắn cho client này sử dụng khóa phiên của họ.
-    /// </summary>
     public async Task<Message> EncryptForClientAsync(Message plaintext)
     {
         return await _session.EncryptMessageAsync(plaintext);
     }
     
-    /// <summary>
-    /// Broadcast tin nhắn đến tất cả client đang kết nối.
-    /// </summary>
     private async Task BroadcastMessageAsync(Message encryptedMessage)
     {
         try
@@ -387,9 +358,6 @@ public class ClientHandler : IDisposable
         }
     }
     
-    /// <summary>
-    /// Gửi danh sách user đang online.
-    /// </summary>
     private async Task SendUserListAsync(List<string> users)
     {
         var message = Message.CreateUserListMessage(users);

@@ -4,9 +4,6 @@ using Xunit;
 
 namespace SecureChat.Tests;
 
-/// <summary>
-/// Tests for ECDH key exchange implementation
-/// </summary>
 public class EcdhKeyExchangeTests
 {
     [Fact]

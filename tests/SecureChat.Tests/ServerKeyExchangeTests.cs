@@ -7,10 +7,6 @@ using Xunit;
 
 namespace SecureChat.Tests;
 
-/// <summary>
-/// Integration tests for server-side key exchange
-/// Tests the handshake protocol between client and server sessions
-/// </summary>
 public class ServerKeyExchangeTests
 {
     private readonly JsonMessageSerializer _serializer = new();

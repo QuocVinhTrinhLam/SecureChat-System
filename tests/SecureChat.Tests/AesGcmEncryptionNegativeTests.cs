@@ -4,10 +4,6 @@ using Xunit;
 
 namespace SecureChat.Tests.Security
 {
-    /// <summary>
-    /// Negative tests for AES-GCM encryption/decryption
-    /// These tests ensure tampering or misuse is correctly detected
-    /// </summary>
     public class AesGcmEncryptionNegativeTests
     {
         [Fact]

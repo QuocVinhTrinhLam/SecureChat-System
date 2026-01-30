@@ -3,23 +3,8 @@ using System.Text;
 
 namespace SecureChat.Core.Security.Implementations;
 
-/// <summary>
-/// Implementation HMAC-SHA256 message signing.
-/// 
-/// Thiết kế bảo mật:
-/// - Sử dụng khóa 256-bit cho HMAC
-/// - SHA-256 cung cấp độ mạnh bảo mật 256-bit
-/// - So sánh chữ ký constant-time để ngăn chặn timing attacks
-/// 
-/// Cách sử dụng:
-/// - Cho message authentication khi sử dụng pattern encrypt-then-MAC
-/// - Có thể sử dụng với MAC key được tính qua HKDF từ shared secret
-/// </summary>
 public sealed class HmacSha256Signer : Interfaces.IMessageSigner
 {
-    /// <summary>
-    /// Kích thước khóa khuyến nghị theo bytes - 256 bits
-    /// </summary>
     private const int KeySizeBytes = 32;
 
     /// <inheritdoc />

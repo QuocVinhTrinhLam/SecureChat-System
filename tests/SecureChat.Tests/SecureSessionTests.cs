@@ -4,9 +4,6 @@ using SecureChat.Core.Models;
 using Xunit;
 
 namespace SecureChat.Tests;
-/// <summary>
-/// Tests for the SecureSession orchestrator
-/// </summary>
 public class SecureSessionTests
 {
     [Fact]

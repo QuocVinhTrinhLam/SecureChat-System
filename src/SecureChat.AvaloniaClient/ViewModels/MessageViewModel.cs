@@ -5,9 +5,7 @@ using SecureChat.Core.Models;
 
 namespace SecureChat.AvaloniaClient.ViewModels;
 
-/// <summary>
-/// ViewModel cho một tin nhắn trong chat
-/// </summary>
+
 public partial class MessageViewModel : ViewModelBase
 {
     private readonly Message _message;
@@ -28,9 +26,7 @@ public partial class MessageViewModel : ViewModelBase
         _messageColor = GetMessageColor(message, currentUserId);
     }
     
-    /// <summary>
-    /// Format tin nhắn để hiển thị
-    /// </summary>
+    
     private static string FormatMessage(Message message, string currentUserId)
     {
         return message.Type switch
@@ -75,9 +71,7 @@ public partial class MessageViewModel : ViewModelBase
         }
     }
     
-    /// <summary>
-    /// Format file message
-    /// </summary>
+    
     private static string FormatFileMessage(Message message, string currentUserName)
     {
         var fileName = message.FileMetadata?.FileName ?? "unknown";
@@ -94,9 +88,7 @@ public partial class MessageViewModel : ViewModelBase
         }
     }
     
-    /// <summary>
-    /// Format file size
-    /// </summary>
+    
     private static string FormatFileSize(long bytes)
     {
         string[] sizes = { "B", "KB", "MB", "GB" };
@@ -110,9 +102,7 @@ public partial class MessageViewModel : ViewModelBase
         return $"{size:0.##} {sizes[order]}";
     }
     
-    /// <summary>
-    /// Lấy màu cho tin nhắn
-    /// </summary>
+    
     private static IBrush GetMessageColor(Message message, string currentUserId)
     {
         return message.Type switch

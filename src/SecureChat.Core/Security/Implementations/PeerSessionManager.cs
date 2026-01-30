@@ -3,21 +3,6 @@ using SecureChat.Core.Security.Interfaces;
 
 namespace SecureChat.Core.Security.Implementations;
 
-/// <summary>
-/// Quản lý nhiều phiên E2E với các peer clients khác
-/// 
-/// Thiết kế bảo mật:
-/// - Mỗi peer có một SecureSession riêng biệt
-/// - Server KHÔNG THỂ giải mã tin nhắn giữa các clients
-/// - Sử dụng ECDH để thiết lập shared secret trực tiếp giữa clients
-/// 
-/// Cách sử dụng:
-/// 1. Client A gọi InitiatePeerSessionAsync() để bắt đầu trao đổi khóa với Client B
-/// 2. Server chuyển tiếp PeerKeyExchange message đến Client B
-/// 3. Client B gọi ProcessPeerKeyExchangeAsync() để xử lý và phản hồi
-/// 4. Server chuyển tiếp PeerKeyExchangeResponse về Client A
-/// 5. Cả hai clients đã có shared secret, có thể gửi tin nhắn E2E
-/// </summary>
 public sealed class PeerSessionManager : IDisposable
 {
     private readonly Dictionary<string, SecureSession> _peerSessions = new();
@@ -25,9 +10,6 @@ public sealed class PeerSessionManager : IDisposable
     private readonly object _lock = new();
     private bool _disposed;
 
-    /// <summary>
-    /// Kiểm tra đã có phiên E2E với peer chưa
-    /// </summary>
     public bool HasSessionWith(string peerId)
     {
         lock (_lock)
@@ -36,9 +18,6 @@ public sealed class PeerSessionManager : IDisposable
         }
     }
 
-    /// <summary>
-    /// Lấy hoặc tạo SecureSession cho peer
-    /// </summary>
     private SecureSession GetOrCreateSession(string peerId)
     {
         lock (_lock)
@@ -52,14 +31,6 @@ public sealed class PeerSessionManager : IDisposable
         }
     }
 
-    /// <summary>
-    /// Khởi tạo phiên E2E với peer - gửi public key và chờ phản hồi
-    /// </summary>
-    /// <param name="peerId">ID của peer cần kết nối</param>
-    /// <param name="peerName">Tên hiển thị của peer</param>
-    /// <param name="selfId">ID của bản thân</param>
-    /// <param name="selfName">Tên hiển thị của bản thân</param>
-    /// <returns>Message PeerKeyExchange để gửi đến peer qua server</returns>
     public async Task<Message> InitiatePeerSessionAsync(string peerId, string peerName, string selfId, string selfName)
     {
         ThrowIfDisposed();
@@ -89,9 +60,6 @@ public sealed class PeerSessionManager : IDisposable
         };
     }
 
-    /// <summary>
-    /// Chờ hoàn tất trao đổi khóa với peer
-    /// </summary>
     public async Task WaitForKeyExchangeAsync(string peerId, int timeoutMs = 30000)
     {
         TaskCompletionSource<bool>? tcs;
@@ -117,11 +85,6 @@ public sealed class PeerSessionManager : IDisposable
         }
     }
 
-    /// <summary>
-    /// Xử lý tin nhắn trao đổi khóa từ peer
-    /// Nếu đây là yêu cầu mới (PeerKeyExchange), trả về phản hồi (PeerKeyExchangeResponse)
-    /// Nếu đây là phản hồi (PeerKeyExchangeResponse), hoàn tất phiên và trả về null
-    /// </summary>
     public async Task<Message?> ProcessPeerKeyExchangeAsync(Message keyExchange, string selfId, string selfName)
     {
         ThrowIfDisposed();
@@ -208,9 +171,6 @@ public sealed class PeerSessionManager : IDisposable
         throw new ArgumentException($"Loại tin nhắn không hợp lệ: {keyExchange.Type}");
     }
 
-    /// <summary>
-    /// Mã hóa tin nhắn để gửi đến peer (E2E)
-    /// </summary>
     public async Task<Message> EncryptForPeerAsync(Message message, string peerId)
     {
         ThrowIfDisposed();
@@ -232,9 +192,6 @@ public sealed class PeerSessionManager : IDisposable
         return await session.EncryptMessageAsync(message);
     }
 
-    /// <summary>
-    /// Giải mã tin nhắn nhận từ peer (E2E)
-    /// </summary>
     public async Task<Message> DecryptFromPeerAsync(Message encryptedMessage, string peerId)
     {
         ThrowIfDisposed();
@@ -256,9 +213,6 @@ public sealed class PeerSessionManager : IDisposable
         return await session.DecryptMessageAsync(encryptedMessage);
     }
 
-    /// <summary>
-    /// Lấy danh sách các peer đã có phiên E2E
-    /// </summary>
     public IEnumerable<string> GetEstablishedPeers()
     {
         lock (_lock)
@@ -276,9 +230,6 @@ public sealed class PeerSessionManager : IDisposable
             throw new ObjectDisposedException(nameof(PeerSessionManager));
     }
 
-    /// <summary>
-    /// Giải phóng tất cả phiên E2E và hủy các pending key exchanges
-    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;

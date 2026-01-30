@@ -4,9 +4,6 @@ using SecureChat.Core.Security.Interfaces;
 
 namespace SecureChat.Core.Security.Implementations
 {
-    /// <summary>
-    /// Triển khai mã hóa xác thực AES-256-GCM.
-    /// </summary>
     public sealed class AesGcmEncryption : ISymmetricEncryption
     {
         private const int KeySize = 32;   // 256-bit
@@ -16,17 +13,10 @@ namespace SecureChat.Core.Security.Implementations
         public int KeySizeBits => 256;
         /// <inheritdoc />
         public string AlgorithmIdentifier => "AES-256-GCM";
-        /// <summary>
-        /// Tạo khóa AES 256-bit an toàn (Base64).
-        /// </summary>
         public string GenerateKey()
         {
             return Convert.ToBase64String(RandomNumberGenerator.GetBytes(KeySize));
         }
-        /// <summary>
-        /// Mã hóa plaintext sử dụng AES-256-GCM.
-        /// Trả về (ciphertext, iv, tag) dưới dạng chuỗi Base64.
-        /// </summary>
         public Task<(string ciphertext, string iv, string tag)>
             EncryptAsync(string plaintext, string key)
         {
@@ -43,10 +33,6 @@ namespace SecureChat.Core.Security.Implementations
                 Convert.ToBase64String(tag)
             ));
         }
-        /// <summary>
-        /// Giải mã ciphertext AES-256-GCM.
-        /// Ném ngoại lệ CryptographicException nếu thất bại.
-        /// </summary>
         public Task<string> DecryptAsync(
             string ciphertext,
             string key,

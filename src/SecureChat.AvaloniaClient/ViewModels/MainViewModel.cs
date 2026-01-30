@@ -14,9 +14,7 @@ using SecureChat.Core.Services;
 
 namespace SecureChat.AvaloniaClient.ViewModels;
 
-/// <summary>
-/// ViewModel chính cho MainWindow
-/// </summary>
+
 public partial class MainViewModel : ViewModelBase
 {
     private readonly ChatService _chatService;
@@ -90,9 +88,7 @@ public partial class MainViewModel : ViewModelBase
         Console.WriteLine("[MainViewModel] Constructor: Event subscriptions completed");
     }
     
-    /// <summary>
-    /// Command kết nối đến server
-    /// </summary>
+    
     [RelayCommand(CanExecute = nameof(CanConnect))]
     private async Task ConnectAsync()
     {
@@ -124,9 +120,7 @@ public partial class MainViewModel : ViewModelBase
     
     private bool CanConnect() => !IsConnected;
     
-    /// <summary>
-    /// Command ngắt kết nối
-    /// </summary>
+    
     [RelayCommand(CanExecute = nameof(CanDisconnect))]
     private async Task DisconnectAsync()
     {
@@ -143,9 +137,7 @@ public partial class MainViewModel : ViewModelBase
     
     private bool CanDisconnect() => IsConnected;
     
-    /// <summary>
-    /// Command gửi tin nhắn
-    /// </summary>
+    
     [RelayCommand(CanExecute = nameof(CanSendMessage))]
     private async Task SendMessageAsync()
     {
@@ -205,9 +197,7 @@ public partial class MainViewModel : ViewModelBase
     
     private bool CanSendMessage() => IsConnected && !string.IsNullOrWhiteSpace(MessageInput);
     
-    /// <summary>
-    /// Command attach file
-    /// </summary>
+    
     [RelayCommand(CanExecute = nameof(CanAttachFile))]
     private async Task AttachFileAsync()
     {
@@ -262,9 +252,7 @@ public partial class MainViewModel : ViewModelBase
     
     private bool CanAttachFile() => IsConnected && !IsTransferring;
     
-    /// <summary>
-    /// Gửi file đến recipient
-    /// </summary>
+    
     private async Task SendFileAsync(string filePath, string recipientName)
     {
         try
@@ -313,9 +301,7 @@ public partial class MainViewModel : ViewModelBase
         }
     }
     
-    /// <summary>
-    /// Xử lý tin nhắn nhận được
-    /// </summary>
+    
     private void OnMessageReceived(object? sender, Message message)
     {
         Console.WriteLine($"[MainViewModel] OnMessageReceived: Type={message.Type}, Sender={message.SenderName}");
@@ -430,9 +416,7 @@ public partial class MainViewModel : ViewModelBase
         });
     }
     
-    /// <summary>
-    /// Xử lý thay đổi trạng thái kết nối
-    /// </summary>
+    
     private void OnConnectionStateChanged(object? sender, ConnectionState state)
     {
         Dispatcher.UIThread.Post(() =>
@@ -456,9 +440,7 @@ public partial class MainViewModel : ViewModelBase
         });
     }
     
-    /// <summary>
-    /// Xử lý lỗi
-    /// </summary>
+    
     private void OnErrorOccurred(object? sender, string error)
     {
         Dispatcher.UIThread.Post(() =>
@@ -467,9 +449,7 @@ public partial class MainViewModel : ViewModelBase
         });
     }
     
-    /// <summary>
-    /// Thêm tin nhắn vào danh sách
-    /// </summary>
+    
     private void AddMessage(Message message)
     {
         Console.WriteLine($"[MainViewModel.AddMessage] Type={message.Type}, Sender={message.SenderName}, Content={message.Content}");
@@ -499,9 +479,7 @@ public partial class MainViewModel : ViewModelBase
         }
     }
     
-    /// <summary>
-    /// Thêm tin nhắn hệ thống
-    /// </summary>
+    
     private void AddSystemMessage(string content)
     {
         var message = Message.CreateSystemMessage(content);

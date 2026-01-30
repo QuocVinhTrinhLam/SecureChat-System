@@ -2,21 +2,6 @@ using System.Security.Cryptography;
 
 namespace SecureChat.Core.Security.Implementations;
 
-/// <summary>
-/// Implementation trao đổi khóa ECDH sử dụng đường cong P-256
-/// 
-/// Thiết kế bảo mật:
-/// - Sử dụng đường cong NIST P-256
-/// - Keys được export ở định dạng SPKI để tương thích
-/// - Xác thực peer public keys trước khi tính shared secret
-/// 
-/// Cách sử dụng:
-/// 1. Gọi GenerateKeyPairAsync() để tạo cặp khóa cục bộ
-/// 2. Gửi GetPublicKey() đến peer
-/// 3. Nhận public key của peer
-/// 4. Gọi DeriveSharedSecretAsync(peerKey) để lấy shared secret
-/// 5. Sử dụng HKDF để tính encryption keys từ shared secret
-/// </summary>
 public sealed class EcdhKeyExchange : Interfaces.IKeyExchange, IDisposable
 {
     private ECDiffieHellman? _ecdh;
@@ -144,9 +129,6 @@ public sealed class EcdhKeyExchange : Interfaces.IKeyExchange, IDisposable
         }
     }
 
-    /// <summary>
-    /// Giải phóng tài nguyên mật mã một cách an toàn
-    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;

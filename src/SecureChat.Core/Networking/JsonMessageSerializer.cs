@@ -5,21 +5,8 @@ using SecureChat.Core.Models;
 
 namespace SecureChat.Core.Networking;
 
-/// <summary>
-/// JSON message serializer sử dụng System.Text.Json
-/// 
-/// Tính năng bảo mật:
-/// - Sử dụng các tùy chọn deserialization nghiêm ngặt
-/// - Xác thực cấu trúc tin nhắn
-/// - Giới hạn kích thước tin nhắn tối đa
-/// - Encoding UTF-8 để xử lý nhất quán
-/// </summary>
 public sealed class JsonMessageSerializer : IMessageSerializer
 {
-    /// <summary>
-    /// Kích thước tin nhắn tối đa cho phép tính bằng bytes
-    /// Bảo mật: Ngăn chặn tấn công làm cạn kiệt bộ nhớ từ tin nhắn quá lớn
-    /// </summary>
     public const int MaxMessageSize = 2 * 1024 * 1024; // 2 MB - Tăng lên để hỗ trợ UTF-8 overhead và encoding
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
@@ -99,10 +86,6 @@ public sealed class JsonMessageSerializer : IMessageSerializer
         }
     }
     
-    /// <summary>
-    /// Xác thực tin nhắn với các field bắt buộc và ràng buộc
-    /// Bảo mật: Từ chối tin nhắn không đúng định dạng sớm trong pipeline
-    /// </summary>
     private static void ValidateMessage(Message message)
     {
         // Xác thực các field bắt buộc

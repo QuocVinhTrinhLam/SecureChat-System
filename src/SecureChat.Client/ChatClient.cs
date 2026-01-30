@@ -3,14 +3,6 @@ using SecureChat.Core.Utilities;
 
 namespace SecureChat.Client;
 
-/// <summary>
-/// Client chat cấp cao điều phối kết nối và tin nhắn.
-/// 
-/// Thiết kế bảo mật:
-/// - Tách riêng xử lý UI/input khỏi các thao tác mạng
-/// - Chuẩn bị sẵn cho việc tích hợp security provider trong tương lai
-/// - Thông báo tin nhắn dựa trên event để tách biệt UI rõ ràng
-/// </summary>
 public sealed class ChatClient : IDisposable
 {
     private readonly string _host;
@@ -24,13 +16,6 @@ public sealed class ChatClient : IDisposable
     private readonly HashSet<string> _onlineUsers = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _usersLock = new();
     
-    /// <summary>
-    /// Tạo một chat client mới.
-    /// </summary>
-    /// <param name="host">Hostname hoặc IP của server.</param>
-    /// <param name="port">Cổng của server.</param>
-    /// <param name="username">Tên người dùng cho client này.</param>
-    /// <param name="logger">Logger cho các sự kiện.</param>
     public ChatClient(string host, int port, string username, ILogger logger)
     {
         _host = host;
@@ -39,9 +24,6 @@ public sealed class ChatClient : IDisposable
         _user = User.Create(username);
     }
     
-    /// <summary>
-    /// Kết nối đến server và chạy phiên chat.
-    /// </summary>
     public async Task ConnectAndRunAsync(CancellationToken cancellationToken)
     {
         _logger.Info("Đang kết nối đến {0}:{1}...", _host, _port);
@@ -85,9 +67,6 @@ public sealed class ChatClient : IDisposable
         }
     }
     
-    /// <summary>
-    /// Gửi tin nhắn join ban đầu đến server.
-    /// </summary>
     private async Task SendJoinMessageAsync(CancellationToken cancellationToken)
     {
         var joinMessage = Message.CreateJoinMessage(_user.Id, _user.Username);
@@ -95,9 +74,6 @@ public sealed class ChatClient : IDisposable
         _logger.Security("Đã gửi tin nhắn join cho user: {0}", _user.Username);
     }
     
-    /// <summary>
-    /// Gửi tin nhắn leave trước khi ngắt kết nối.
-    /// </summary>
     private async Task SendLeaveMessageAsync()
     {
         try
@@ -111,9 +87,6 @@ public sealed class ChatClient : IDisposable
         }
     }
     
-    /// <summary>
-    /// Vòng lặp chính để đọc input người dùng và gửi tin nhắn.
-    /// </summary>
     private async Task RunInputLoopAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -178,9 +151,6 @@ public sealed class ChatClient : IDisposable
         }
     }
     
-    /// <summary>
-    /// Đọc một dòng từ console với hỗ trợ hủy.
-    /// </summary>
     private static async Task<string?> ReadLineAsync(CancellationToken cancellationToken)
     {
         // Sử dụng cách tiếp cận polling đơn giản cho console input với hủy
@@ -197,17 +167,11 @@ public sealed class ChatClient : IDisposable
         return null;
     }
     
-    /// <summary>
-    /// Xử lý tin nhắn nhận được.
-    /// </summary>
     private void OnMessageReceived(object? sender, Message message)
     {
         DisplayMessage(message);
     }
     
-    /// <summary>
-    /// Hiển thị tin nhắn ra console.
-    /// </summary>
     private void DisplayMessage(Message message)
     {
         var originalColor = Console.ForegroundColor;
@@ -279,9 +243,6 @@ public sealed class ChatClient : IDisposable
         Console.ForegroundColor = originalColor;
     }
     
-    /// <summary>
-    /// Cập nhật danh sách users online từ server
-    /// </summary>
     private void UpdateOnlineUsers(string userListContent)
     {
         lock (_usersLock)
@@ -301,9 +262,6 @@ public sealed class ChatClient : IDisposable
         }
     }
     
-    /// <summary>
-    /// Kiểm tra xem user có online không
-    /// </summary>
     private bool IsUserOnline(string username)
     {
         lock (_usersLock)
@@ -312,9 +270,6 @@ public sealed class ChatClient : IDisposable
         }
     }
     
-    /// <summary>
-    /// Hiển thị danh sách users online
-    /// </summary>
     private void DisplayOnlineUsers()
     {
         var originalColor = Console.ForegroundColor;
@@ -335,9 +290,6 @@ public sealed class ChatClient : IDisposable
         Console.ForegroundColor = originalColor;
     }
     
-    /// <summary>
-    /// Giải phóng tài nguyên của client
-    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;

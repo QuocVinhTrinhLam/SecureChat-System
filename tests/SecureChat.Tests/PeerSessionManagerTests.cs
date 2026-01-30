@@ -3,9 +3,6 @@ using SecureChat.Core.Security.Implementations;
 
 namespace SecureChat.Tests;
 
-/// <summary>
-/// Các test cases cho PeerSessionManager - quản lý phiên E2E giữa clients
-/// </summary>
 public class PeerSessionManagerTests
 {
     [Fact]

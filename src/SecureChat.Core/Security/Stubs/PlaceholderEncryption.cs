@@ -2,18 +2,6 @@ namespace SecureChat.Core.Security.Stubs;
 
 using SecureChat.Core.Security.Interfaces;
 
-/// <summary>
-/// Placeholder implementation of ISymmetricEncryption for foundation phase.
-/// 
-/// WARNING: This provides NO encryption! Messages are Base64-encoded only.
-/// This stub exists to allow the system architecture to be tested
-/// before cryptographic primitives are implemented.
-/// 
-/// TODO (Phase 2): Replace with AES-GCM implementation using:
-/// - System.Security.Cryptography.AesGcm
-/// - 256-bit keys
-/// - 96-bit nonces (as recommended by NIST)
-/// </summary>
 public sealed class PlaceholderEncryption : ISymmetricEncryption
 {
     /// <inheritdoc />

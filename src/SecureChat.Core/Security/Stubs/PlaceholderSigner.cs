@@ -2,18 +2,6 @@ namespace SecureChat.Core.Security.Stubs;
 
 using SecureChat.Core.Security.Interfaces;
 
-/// <summary>
-/// Placeholder implementation of IMessageSigner for foundation phase.
-/// 
-/// WARNING: This provides NO cryptographic signing!
-/// This stub exists to allow the system architecture to be tested
-/// before cryptographic primitives are implemented.
-/// 
-/// TODO (Phase 2): Replace with HMAC-SHA256 implementation using:
-/// - System.Security.Cryptography.HMACSHA256
-/// - Constant-time comparison for verification
-/// - Alternatively, consider ECDSA for non-repudiation
-/// </summary>
 public sealed class PlaceholderSigner : IMessageSigner
 {
     /// <inheritdoc />

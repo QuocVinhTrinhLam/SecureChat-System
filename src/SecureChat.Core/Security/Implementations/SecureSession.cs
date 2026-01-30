@@ -3,9 +3,6 @@ using SecureChat.Core.Security.Interfaces;
 using System.Text.Json;
 
 namespace SecureChat.Core.Security.Implementations;
-/// <summary>
-/// Quản lý phiên bảo mật, trao đổi khóa và mã hóa tin nhắn.
-/// </summary>
 public sealed class SecureSession : IDisposable
 {
     private readonly IKeyExchange _keyExchange;
@@ -15,24 +12,12 @@ public sealed class SecureSession : IDisposable
     private string? _encryptionKey;
     private string? _macKey;
     private bool _disposed;
-    /// <summary>
-    /// True nếu phiên đã được thiết lập và khóa đã được derive.
-    /// </summary>
     public bool IsEstablished => _encryptionKey is not null;
-    /// <summary>
-    /// ID phiên duy nhất.
-    /// </summary>
     public string? SessionId => _sessionId;
-    /// <summary>
-    /// Tạo phiên với implementations mặc định.
-    /// </summary>
     public SecureSession()
         : this(new EcdhKeyExchange(), new AesGcmEncryption(), new HmacSha256Signer())
     {
     }
-    /// <summary>
-    /// Tạo phiên với implementations tùy chỉnh.
-    /// </summary>
     public SecureSession(
         IKeyExchange keyExchange,
         ISymmetricEncryption encryption,
@@ -42,18 +27,12 @@ public sealed class SecureSession : IDisposable
         _encryption = encryption;
         _signer = signer;
     }
-    /// <summary>
-    /// Khởi tạo phiên bằng cách sinh cặp khóa local.
-    /// </summary>
     public async Task InitializeAsync()
     {
         ThrowIfDisposed();
         _sessionId = Guid.NewGuid().ToString();
         await _keyExchange.GenerateKeyPairAsync();
     }
-    /// <summary>
-    /// Tạo tin nhắn trao đổi khóa chứa khóa công khai local.
-    /// </summary>
     public Message GetKeyExchangeMessage(string senderId, string senderName)
     {
         ThrowIfDisposed();
@@ -70,9 +49,6 @@ public sealed class SecureSession : IDisposable
             }
         };
     }
-    /// <summary>
-    /// Xử lý tin nhắn trao đổi khóa và derive khóa phiên.
-    /// </summary>
     public async Task ProcessKeyExchangeMessageAsync(Message message)
     {
         ThrowIfDisposed();
@@ -87,9 +63,6 @@ public sealed class SecureSession : IDisposable
         _encryptionKey = encKey;
         _macKey = macKey;
     }
-    /// <summary>
-    /// Mã hóa tin nhắn để truyền tải an toàn.
-    /// </summary>
     public async Task<Message> EncryptMessageAsync(Message message)
     {
         ThrowIfDisposed();
@@ -132,9 +105,6 @@ public sealed class SecureSession : IDisposable
             }
         };
     }
-    /// <summary>
-    /// Giải mã tin nhắn mã hóa nhận được.
-    /// </summary>
     public async Task<Message> DecryptMessageAsync(Message encryptedMessage)
     {
         ThrowIfDisposed();
@@ -201,9 +171,6 @@ public sealed class SecureSession : IDisposable
             FileChunkData = fileChunkData
         };
     }
-    /// <summary>
-    /// Giải phóng tài nguyên crypto và xóa dữ liệu nhạy cảm.
-    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;
@@ -225,17 +192,8 @@ public sealed class SecureSession : IDisposable
                 "Session not established. Complete key exchange first.");
     }
 }
-/// <summary>
-/// Ngoại lệ liên quan đến bảo mật.
-/// </summary>
 public class SecurityException : Exception
 {
-    /// <summary>
-    /// Tạo ngoại lệ bảo mật mới.
-    /// </summary>
     public SecurityException(string message) : base(message) { }
-    /// <summary>
-    /// Tạo ngoại lệ bảo mật với inner exception.
-    /// </summary>
     public SecurityException(string message, Exception inner) : base(message, inner) { }
 }
