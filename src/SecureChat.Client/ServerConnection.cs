@@ -19,6 +19,7 @@ public sealed class ServerConnection : IDisposable
     private bool _disposed;
     private string _userId = string.Empty;
     private string _userName = string.Empty;
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
     
     public bool IsSecure => _session.IsEstablished;
     
@@ -253,12 +254,10 @@ public sealed class ServerConnection : IDisposable
     private async Task SendDirectMessageE2EAsync(Message message, bool allowFallback, CancellationToken cancellationToken)
     {
         var recipientName = message.RecipientName!;
-        Console.WriteLine($"[ServerConnection] SendDirectMessageE2E: to={recipientName}, allowFallback={allowFallback}");
         
         // Kiểm tra và thiết lập phiên E2E nếu chưa có
         if (!_peerManager.HasSessionWith(recipientName))
         {
-            Console.WriteLine($"[ServerConnection] No E2E session, initiating key exchange...");
             _logger.Security("Đang thiết lập phiên E2E với {0}...", recipientName);
             
             // Khởi tạo trao đổi khóa với peer
@@ -272,20 +271,16 @@ public sealed class ServerConnection : IDisposable
             try
             {
                 await _peerManager.WaitForKeyExchangeAsync(recipientName, 5000);
-                Console.WriteLine($"[ServerConnection] E2E session established with {recipientName}!");
                 _logger.Security("Phiên E2E với {0} đã thiết lập!", recipientName);
             }
             catch (TimeoutException)
             {
-                Console.WriteLine($"[ServerConnection] E2E timeout");
-                
                 if (!allowFallback)
                 {
                     _logger.Error("Không thể gửi file: E2E session timeout. Server blind requirement prevents fallback.");
                     throw new TimeoutException("Không thể thiết lập E2E session cho file transfer. Server không được phép nhìn thấy file.");
                 }
 
-                Console.WriteLine($"[ServerConnection] Fallback to server encryption");
                 _logger.Warning("E2E timeout, fallback to server encryption.");
                 
                 // Fallback to server encryption
@@ -293,17 +288,14 @@ public sealed class ServerConnection : IDisposable
                 {
                     var serverEncrypted = await _session.EncryptMessageAsync(message);
                     await SendRawMessageAsync(serverEncrypted, cancellationToken);
-                    Console.WriteLine($"[ServerConnection] Message sent via server encryption");
                 }
                 return;
             }
         }
         
         // Mã hóa tin nhắn với khóa E2E
-        Console.WriteLine($"[ServerConnection] Encrypting with E2E for {recipientName}");
         var encrypted = await _peerManager.EncryptForPeerAsync(message, recipientName);
         await SendRawMessageAsync(encrypted, cancellationToken);
-        Console.WriteLine($"[ServerConnection] E2E message sent to {recipientName}");
     }
     
     private async Task HandlePeerKeyExchangeAsync(Message message, CancellationToken cancellationToken)
@@ -323,43 +315,40 @@ public sealed class ServerConnection : IDisposable
     
     private async Task HandleEncryptedMessageAsync(Message encryptedMessage)
     {
-        Console.WriteLine($"[ServerConnection] HandleEncryptedMessageAsync: SenderName={encryptedMessage.SenderName}");
-        
         try
         {
             Message decrypted;
             
             // Thử giải mã với peer session (E2E) nếu có sender
-            var senderId = encryptedMessage.SenderId;
             var senderName = encryptedMessage.SenderName;
-            
-            Console.WriteLine($"[ServerConnection] HasPeerSession={_peerManager.HasSessionWith(senderName ?? "")}, ServerSessionEstablished={_session.IsEstablished}");
-            
             if (!string.IsNullOrEmpty(senderName) && _peerManager.HasSessionWith(senderName))
             {
-                Console.WriteLine($"[ServerConnection] Decrypting with peer session for {senderName}");
-                decrypted = await _peerManager.DecryptFromPeerAsync(encryptedMessage, senderName);
-                _logger.Debug("Giải mã E2E từ {0}", senderName);
+                try 
+                {
+                    decrypted = await _peerManager.DecryptFromPeerAsync(encryptedMessage, senderName);
+                }
+                catch (Exception)
+                {
+                    // Nếu giải mã peer thất bại (VD: tin nhắn broadcast từ user này nhưng qua server),
+                    // thử fallback sang giải mã server bên dưới
+                    decrypted = await _session.DecryptMessageAsync(encryptedMessage);
+                }
             }
             else if (_session.IsEstablished)
             {
-                Console.WriteLine($"[ServerConnection] Decrypting with server session");
                 // Fallback: giải mã với server session
                 decrypted = await _session.DecryptMessageAsync(encryptedMessage);
             }
             else
             {
-                Console.WriteLine($"[ServerConnection] No session available!");
                 _logger.Warning("Không thể giải mã tin nhắn - không có session phù hợp");
                 return;
             }
             
-            Console.WriteLine($"[ServerConnection] Decrypted! Type={decrypted.Type}, Content={decrypted.Content}");
             MessageReceived?.Invoke(this, decrypted);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ServerConnection] EXCEPTION: {ex.Message}");
             _logger.Error("Lỗi giải mã: {0}", ex.Message);
         }
     }
@@ -385,16 +374,28 @@ public sealed class ServerConnection : IDisposable
             Array.Reverse(lengthBytes);
         }
         
-        // Ghi độ dài + tin nhắn
-        await _stream.WriteAsync(lengthBytes, cancellationToken);
-        await _stream.WriteAsync(messageBytes, cancellationToken);
-        await _stream.FlushAsync(cancellationToken);
+        // Thread-safe write
+        await _sendLock.WaitAsync(cancellationToken);
+        try
+        {
+            // Ghi độ dài + tin nhắn
+            await _stream.WriteAsync(lengthBytes, cancellationToken);
+            await _stream.WriteAsync(messageBytes, cancellationToken);
+            await _stream.FlushAsync(cancellationToken);
+        }
+        finally
+        {
+            _sendLock.Release();
+        }
     }
     
     public void Dispose()
     {
         if (_disposed) return;
         
+        // Dispose lock
+        _sendLock.Dispose();
+
         _peerManager.Dispose();
         _session.Dispose();
         _stream?.Dispose();

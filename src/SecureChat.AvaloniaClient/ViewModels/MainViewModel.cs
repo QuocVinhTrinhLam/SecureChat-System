@@ -168,6 +168,10 @@ public partial class MainViewModel : ViewModelBase
                 }
             }
             
+
+            
+            Console.WriteLine($"[MainViewModel.SendMessageAsync] Sending: '{content}', Recipient: '{recipientName ?? "null"}'");
+            
             // Gửi tin nhắn - server sẽ echo lại để hiển thị (với broadcast) hoặc không (với direct)
             var sentMessage = await _chatService.SendMessageAsync(content, recipientName);
             

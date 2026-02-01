@@ -18,6 +18,8 @@ public class ClientHandler : IDisposable
     private readonly string _serverId = "SERVER";
     private readonly string _serverName = "Server";
     private bool _disposed;
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
+
     public ClientHandler(TcpClient client, ClientManager manager)
     {
         _client = client;
@@ -116,6 +118,9 @@ public class ClientHandler : IDisposable
             return;
         }
         
+        // DEBUG LOG
+        // await SendSystemMessageAsync($"[DEBUG] Đang xử lý Encrypted Message. Recipient: '{encryptedMessage.RecipientName ?? "null"}', IV: {encryptedMessage.SecurityMetadata?.InitializationVector}");
+
         // Kiểm tra xem đây có phải tin nhắn có người nhận cụ thể không
         if (!string.IsNullOrEmpty(encryptedMessage.RecipientName))
         {
@@ -298,12 +303,18 @@ public class ClientHandler : IDisposable
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[SERVER] Lỗi gửi broadcast đến {client.ClientEndpoint}: {ex.Message}");
+                    // DEBUG: Báo lỗi lại cho người gửi
+                    if (this._session.IsEstablished) // Kiểm tra session của sender
+                    {
+                         // await SendSystemMessageAsync($"[DEBUG] Lỗi gửi broadcast đến {client.User}: {ex.Message}");
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[SERVER] Lỗi giải mã broadcast: {ex.Message}");
+            await SendSystemMessageAsync($"[DEBUG] Lỗi giải mã (trong BroadcastMessageAsync): {ex.Message}");
         }
     }
     private async Task HandleTextMessageAsync(Message message)
@@ -375,9 +386,19 @@ public class ClientHandler : IDisposable
             if (BitConverter.IsLittleEndian)
                 Array.Reverse(lengthBytes);            
             Console.WriteLine($"[DEBUG] Đang gửi tin nhắn {message.Type}, length={bytes.Length}, prefix bytes=[{lengthBytes[0]:X2},{lengthBytes[1]:X2},{lengthBytes[2]:X2},{lengthBytes[3]:X2}]");            
-            await _stream.WriteAsync(lengthBytes);
-            await _stream.WriteAsync(bytes);
-            await _stream.FlushAsync();
+            
+            // Thread-safe write
+            await _sendLock.WaitAsync();
+            try
+            {
+                await _stream.WriteAsync(lengthBytes);
+                await _stream.WriteAsync(bytes);
+                await _stream.FlushAsync();
+            }
+            finally
+            {
+                _sendLock.Release();
+            }
         }
         catch (Exception ex)
         {
@@ -390,18 +411,19 @@ public class ClientHandler : IDisposable
         {
             // Đọc 4-byte tiền tố độ dài
             var lengthBytes = new byte[4];
-            var bytesRead = await _stream.ReadAsync(lengthBytes, 0, 4);            
-            if (bytesRead == 0)
-                return null; // Kết nối đã đóng            
-            if (bytesRead < 4)
+            var totalRead = 0;
+            while (totalRead < 4)
             {
-                Console.WriteLine($"[SERVER] Không đủ bytes cho tiền tố độ dài");
-                return null;
+                var read = await _stream.ReadAsync(lengthBytes, totalRead, 4 - totalRead);
+                if (read == 0) return null; // Kết nối đóng
+                totalRead += read;
             }
+            
             // Chuyển đổi Big-Endian sang độ dài
             if (BitConverter.IsLittleEndian)
                 Array.Reverse(lengthBytes);
             var messageLength = BitConverter.ToInt32(lengthBytes, 0);
+            
             // Kiểm tra kích thước tin nhắn
             if (messageLength <= 0 || messageLength > JsonMessageSerializer.MaxMessageSize)
             {
@@ -410,7 +432,7 @@ public class ClientHandler : IDisposable
             }
             // Đọc payload tin nhắn
             var messageBytes = new byte[messageLength];
-            var totalRead = 0;
+            totalRead = 0;
             while (totalRead < messageLength)
             {
                 var read = await _stream.ReadAsync(messageBytes, totalRead, messageLength - totalRead);
@@ -465,6 +487,7 @@ public class ClientHandler : IDisposable
             }
         }
         
+        _sendLock.Dispose();
         _session.Dispose();
         _stream.Close();
         _client.Close();
