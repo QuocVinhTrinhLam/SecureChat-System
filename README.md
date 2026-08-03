@@ -1,7 +1,5 @@
 # SecureChat-System
 
-Ứng dụng chat client-server bảo mật với mã hóa end-to-end sử dụng các thuật toán mật mã hiện đại cho môn học mạng máy tính.
-
 ## Tính năng bảo mật
 
 - **ECDH Key Exchange (P-256)**: Trao đổi khóa Diffie-Hellman trên đường cong elliptic
